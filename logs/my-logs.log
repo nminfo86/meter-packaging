@@ -1,0 +1,14 @@
+
+[09/Sep/2020:15:00:51] [Unknown user] [Microsoft][ODBC Driver 11 for SQL Server][SQL Server]Incorrect syntax near 'LIMIT'. getProductLastMvt
+
+[09/Sep/2020:15:02:38] [Unknown user] [Microsoft][ODBC Driver 11 for SQL Server][SQL Server]Incorrect syntax near 'LIMIT'. getProductLastMvt
+
+[09/Sep/2020:15:04:07] [Unknown user] [Microsoft][ODBC Driver 11 for SQL Server][SQL Server]Incorrect syntax near 'LIMIT'. getProductLastMvt
+
+[09/Sep/2020:15:04:13] [Unknown user] [Microsoft][ODBC Driver 11 for SQL Server][SQL Server]Incorrect syntax near 'LIMIT'. getProductLastMvt
+
+[09/Sep/2020:15:07:22] [Unknown user] [Microsoft][ODBC Driver 11 for SQL Server][SQL Server]Incorrect syntax near 'ANDProID'. getProductLastMvt
+
+[09/Sep/2020:15:07:31] [Unknown user] [Microsoft][ODBC Driver 11 for SQL Server][SQL Server]Incorrect syntax near 'ANDProID'. getProductLastMvt
+
+[19/Oct/2020:15:00:20] [Unknown user] SQLSTATE[28000]: [Microsoft][ODBC Driver 11 for SQL Server][SQL Server]Login failed for user 'sa'.

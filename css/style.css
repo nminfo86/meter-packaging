@@ -1,0 +1,64 @@
+#packTable tr{
+    font-size: 1.3em;
+}
+
+#printDiv{
+
+     position: relative;
+     white-space: nowrap;
+}
+
+.productName{
+  position: absolute;
+  bottom: 68.5%;
+  left: 11.5%;
+font-size: 1.6em;
+}
+.calibre{
+  position: absolute;
+  bottom: 67.4%;
+  left: 24%;
+font-size: 2.2em;
+}
+.boxNumber{
+     position: absolute;
+  bottom: 55.8%;
+  left: 12.8%;
+  font-size: 1.3em;
+}
+#qrcode{
+    position: absolute;
+     bottom: 53.1%;
+  left: 41%;
+}
+.sn{
+  position: absolute;
+  bottom: 10%;
+  left: 2.6%;
+  font-size: 1.25em;
+  line-height: 1.8;
+  text-align: justify;
+}
+.qte{
+  position: absolute;
+  bottom: 3%;
+  left: 39%;
+}
+.date{
+  position: absolute;
+  bottom: 3%;
+  left: 9%;
+  font-size: 1.4em;
+}
+#imgLabel{
+    width: 48%;
+    margin-left: 0.75%;
+}
+/* footer */
+footer {
+    padding: 2em 0;
+    margin: 3em 0;
+    border-top: 1px solid #ddd;
+    color: #999;
+    text-align: center;
+}
