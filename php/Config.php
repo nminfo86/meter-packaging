@@ -35,19 +35,8 @@ class Config {
 
     public static $user_not_found = "user-not-found";
     public static $user_still_blocked = "user-still-blocked";
+
 //********************************** CONFIG VARIABLES ************************************//
-    // inactive session time,
-    // this variable is used in functions.php/checkSessionAlive()
-    public static $session_inactive = 18000;
-
-    // acces errors permitted to the user befor blocked by the CMS,
-    // this variable is used in Authentication.php/increaseAccessErrors()
-    public static $access_errors = 3;
-
-    // User waiting time (minutes) befor the CMS Gives acces an other time,
-    // this variable is used in Authentication.php/increaseAccessErrors()
-    public static $user_wait_time= 5;
-
 
     // The path of the log file ,
     // this variable is used in functions.php/addTrace()
