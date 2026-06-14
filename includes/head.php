@@ -10,7 +10,6 @@
         <!--Font awsome-->
         <link href="_plugins/css/print.min.css" rel="stylesheet">
         <!--Font awesome CSS-->
-        <link href="css/myvalidation.css?v=<?= filemtime('css/myvalidation.css') ?>" rel="stylesheet">
         <link href="css/style.css?v=<?= filemtime('css/style.css') ?>" rel="stylesheet">
         <!--<script src="_plugins/js/respond.js"></script>-->
         <!-- Favicon  -->
