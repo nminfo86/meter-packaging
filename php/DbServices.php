@@ -1,451 +1,142 @@
 <?php
-
 require_once "Database.php";
 require_once "functions.php";
 require_once "Config.php";
 
 if (isset($_POST['function'])) {
-
-    if (($_POST['function'] == "getTestStatus") && (isset($_POST['station'])) && (isset($_POST['QR']))) {
-        DbServices::getTestStatus($_POST['station'], $_POST['QR'], True);
+    if ($_POST['function'] == "getMeterTypes") {
+        DbServices::getMeterTypes();
     }
-    if (($_POST['function'] == "getProductLastMvt") &&  (isset($_POST['QR']))) {
-        DbServices::getProductLastMvt($_POST['QR'], True);
+    if ($_POST['function'] == "packMeter" && isset($_POST['barcode']) && isset($_POST['id_meter_type'])) {
+        DbServices::packMeter(trim($_POST['barcode']), intval($_POST['id_meter_type']));
     }
-    if (($_POST['function'] == "getBoxOfPackaging") && (isset($_POST['PO']))) {
-        DbServices::getBoxOfPackaging($_POST['PO']);
+    if ($_POST['function'] == "getPackedMetersOfBox" && isset($_POST['id_box'])) {
+        DbServices::getPackedMetersOfBox(intval($_POST['id_box']));
     }
-    if (($_POST['function'] == "getBoxOfPackedProduct") && (isset($_POST['QR']))) {
-        DbServices::getBoxOfPackedProduct($_POST['QR']);
-    }
-    if (($_POST['function'] == "closeBox") && (isset($_POST['id_box']))) {
-        DbServices::closeBox($_POST['id_box']);
-    }
-    if (($_POST['function'] == "getPackedProductsOfBox") && (isset($_POST['id_box']))) {
-        DbServices::getPackedProductsOfBox($_POST['id_box']);
-    }
-    if (($_POST['function'] == "packProduct") && (isset($_POST['id_box'])) && (isset($_POST['QR'])) && (isset($_POST['PO'])) && (isset($_POST['sn'])) && (isset($_POST['name']))) {
-        DbServices::packProduct($_POST['id_box'],$_POST['QR'], $_POST['PO'], $_POST['sn'], $_POST['name']);
+    if ($_POST['function'] == "getPackedMetersByBox" && isset($_POST['id_box'])) {
+        DbServices::getPackedMetersOfBox(intval($_POST['id_box']));
     }
 }
 
 class DbServices {
 
-    static function createBox($PO) {
+    static function getMeterTypes() {
         $conn = Database::getConnection();
-
-        $query = "INSERT INTO " .
-                " Box " .
-                " (boxNumber,status,box_PO)" .
-                " VALUES " .
-                " (:boxNumber, :status, :box_PO)";
-
-        $stmt = $conn->prepare($query);
-
-        $stmt->bindValue(':boxNumber', DbServices::getInsertBoxNumber($PO), PDO::PARAM_STR);
-        $stmt->bindValue(':status', Config::$box_status_open, PDO::PARAM_STR);
-        $stmt->bindValue(':box_PO', $PO, PDO::PARAM_STR);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-
-        $query = "SELECT TOP 1" .
-                " * " .
-                " FROM " .
-                " Box " .
-                " ORDER BY " .
-                " id " .
-                " DESC";
-        $stmt = $conn->prepare($query);
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-        echo json_encode($output);
+        $stmt = $conn->prepare("SELECT id, meter_type, qty_box FROM meter_type");
+        $stmt->execute();
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
-    //This function return the Box number to be inserted while creating a new box
-    static function getInsertBoxNumber($PO) {
-        $conn = Database::getConnection();
-        $query = "Select " .
-                " count(id) as number" .
-                " FROM " .
-                " Box " .
-                " WHERE " .
-                " box_PO" . " = :PO";
-
-        $stmt = $conn->prepare($query);
-        $stmt->bindParam(':PO', $PO, PDO::PARAM_STR);
-
-        if (!$stmt->execute()) {
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $PO . "-" . ($output[0]["number"] + 1);
-    }
-
-    static function geData($extractData) {
-        $conn = Database::getConnection();
-        $query = "SELECT *" .
-                " FROM " .
-                " ProductInfo " .
-                " WHERE " .
-                "ProductInfo.Station = 'packaging'";
-
-        $stmt = $conn->prepare($query);
-        //$stmt->bindParam(':id', $id, PDO::PARAM_INT);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-        if ($stmt->rowCount() == 0) {
-            if ($extractData) {
-                echo json_encode(array("state" => "f", "message" => Config::$no_data_found));
-                exit;
-            }
-        }
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $output[] = $row;
-        }
-        if ($extractData) {
-            echo json_encode($output);
-        }
-        return $output;
-    }
-
-    static function getTestStatus($station, $QR, $extractData) {
-        $conn = Database::getConnection();
-        $query = "SELECT " . " TestStatus " .
-                " FROM " .
-                " ProductInfo " .
-                " WHERE " .
-                "Station" . "= :station" .
-                " AND " .
-                " QR" . "= :QR";
-
-        $stmt = $conn->prepare($query);
-
-        $stmt->bindValue(':station', $station, PDO::PARAM_STR);
-        $stmt->bindValue(':QR', $QR, PDO::PARAM_STR);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-        if ($stmt->rowCount() == 0) {
-            if ($extractData) {
-                echo json_encode(array("state" => "f", "message" => Config::$no_data_found));
-                exit;
-            }
-        }
-
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($extractData) {
-            echo json_encode($output);
-        }
-        return $output;
-    }
-
-    static function getBoxOfPackaging($PO) {
-        $conn = Database::getConnection();
-        $query = "SELECT " . " * " .
-                " FROM " .
-                " Box " .
-                " WHERE " .
-                " box_PO" . "= :PO" .
-                " AND " .
-                " status" . " = 'open'";
-
-        $stmt = $conn->prepare($query);
-
-        $stmt->bindValue(':PO', $PO, PDO::PARAM_STR);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-        if ($stmt->rowCount() == 0) {
-            DbServices::createBox($PO);
-            exit;
-        }
-
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-        echo json_encode($output);
-
-        return $output;
-    }
-    
-    static function getBoxOfPackedProduct($QR) {
+    static function packMeter($barcode, $id_meter_type) {
         $conn = Database::getConnection();
 
-        $query = " SELECT Box.* " .
-                 " , ProductInfo_Laser.id_box , ProductInfo_Laser.QR".
-                 " FROM ".
-                 " Box " .
-                 " JOIN " .
-                 " ProductInfo_Laser " .
-                 " ON " .
-                 " Box.id = ProductInfo_Laser.id_box".
-                 " WHERE ".
-                 " ProductInfo_Laser.QR" . " = :QR";
-
-        $stmt = $conn->prepare($query);
-
-        $stmt->bindValue(':QR', $QR, PDO::PARAM_STR);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
+        // 1. Vérifier si le compteur est déjà scanné/emballé
+        $stmtCheck = $conn->prepare("SELECT id, id_box FROM meter WHERE barcode = :barcode");
+        $stmtCheck->execute([':barcode' => $barcode]);
+        if ($stmtCheck->rowCount() > 0) {
+            echo json_encode(["state" => "f", "message" => "Ce compteur (Code: $barcode) est déjà emballé !"]);
             exit;
         }
 
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-        echo json_encode($output);
+        // 2. Obtenir la limite du carton pour ce type de compteur
+        $stmtType = $conn->prepare("SELECT meter_type, qty_box FROM meter_type WHERE id = :id");
+        $stmtType->execute([':id' => $id_meter_type]);
+        $typeInfo = $stmtType->fetch(PDO::FETCH_ASSOC);
+        $qtyLimit = $typeInfo['qty_box'];
+        $typeName = $typeInfo['meter_type'];
 
-        return $output;
-    }
-
-    static function packProduct($id_box, $QR, $PO, $sn, $name) {
-        $conn = Database::getConnection();
-
-        //Update ProductInfoLaser table
-        $query1 = " UPDATE " . " ProductInfo_Laser " .
-                " SET " .
-                " IsPackage" . "= 1" .
-                " , " .
-                " id_box" . "= :id_box" .
-                " WHERE " .
-                " QR " . "= :QR";
-
-        //print_r($query1);
-        $stmt1 = $conn->prepare($query1);
-
-        $stmt1->bindValue(':id_box', $id_box, PDO::PARAM_INT);
-        $stmt1->bindValue(':QR', $QR, PDO::PARAM_STR);
-
-        if (!$stmt1->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt1) . " " . __FUNCTION__." Query 1");
-            exit;
-        }
+        // 3. Trouver un carton ouvert pour ce type ou en créer un nouveau
+        $queryBox = "SELECT b.id, b.box_number FROM box b 
+                     WHERE b.status = 'open' 
+                     AND (
+                        (SELECT COUNT(*) FROM meter m WHERE m.id_box = b.id) = 0 
+                        OR 
+                        (SELECT id_meter_type FROM meter m WHERE m.id_box = b.id LIMIT 1) = :id_type
+                     ) ORDER BY b.id ASC LIMIT 1";
         
-        //Create Mouvement "Packaging -OK" in ProductInfo table
-        $query2 = "INSERT INTO " .
-                " ProductInfo " .
-                " (PO, QR, SerialNo, CreateTime, ProName, Station, TestStatus)" .
-                " VALUES " .
-                " (:PO, :QR, :SerialNo, :CreateTime, :ProName, :Station, :TestStatus)";
+        $stmtBox = $conn->prepare($queryBox);
+        $stmtBox->execute([':id_type' => $id_meter_type]);
 
-        $stmt2 = $conn->prepare($query2);
-
-        $stmt2->bindValue(':PO', $PO, PDO::PARAM_STR);
-        $stmt2->bindValue(':QR', $QR, PDO::PARAM_STR);
-        $stmt2->bindValue(':SerialNo', $sn, PDO::PARAM_STR);
-        $stmt2->bindValue(':CreateTime', date("d-m-Y h:i"), PDO::PARAM_STR);
-        $stmt2->bindValue(':ProName', $name, PDO::PARAM_STR);
-        $stmt2->bindValue(':Station', "Packaging", PDO::PARAM_STR);
-        $stmt2->bindValue(':TestStatus', "OK", PDO::PARAM_STR);
-
-        if (!$stmt2->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt2) . " " . __FUNCTION__." Query 2");
-            exit;
-        }
-        
-        //Close Box management
-        if (DbServices::countBoxPackedProducts($id_box) == getBoxQteLimit($PO)) {
-            DbServices::closeBox($id_box);
-              echo json_encode(array(
-                "state" => "s",
-                "message" => Config::$box_full,
-                "box" => DbServices::getBoxById($id_box),
-                "packed_box_qte"=>(DbServices::countBoxPackedProducts($id_box)."/".getBoxQteLimit($PO)),
-                "packed_po_qte"=>DbServices::countPOPackedProducts($PO)
-                    ));
+        if ($stmtBox->rowCount() > 0) {
+            $box = $stmtBox->fetch(PDO::FETCH_ASSOC);
+            $id_box = $box['id'];
+            $box_number = $box['box_number'];
         } else {
-
-            echo json_encode(array(
-                "state" => "s", 
-                "box" => DbServices::getBoxById($id_box),
-                "packed_box_qte"=>(DbServices::countBoxPackedProducts($id_box)."/".getBoxQteLimit($PO)),
-                "packed_po_qte"=>DbServices::countPOPackedProducts($PO)
-                    ));
-        }
-    }
-
-    static function closeBox($id_box) {
-        $conn = Database::getConnection();
-
-        //Update ProductInfoLaser table
-        $query = " UPDATE " . " Box " .
-                " SET " .
-                " status" . "= 'closed'" .
-                " WHERE " .
-                " id " . "= :id_box";
- 
-        $stmt = $conn->prepare($query);
-
-        $stmt->bindValue(':id_box', $id_box, PDO::PARAM_INT);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-    }
-    
-    static function countBoxPackedProducts($id_box){
-         $conn = Database::getConnection();
-        $query = "Select " .
-                " count(id) as number".
-                " FROM " . 
-                "ProductInfo_Laser" .
-                " WHERE ".
-                "id_box =:id_box";
-
-        $stmt = $conn->prepare($query);
-        $stmt->bindValue(':id_box', $id_box, PDO::PARAM_INT);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            return $output[0]["number"];
-    }
-    
-    static function countPOPackedProducts($PO){
-         $conn = Database::getConnection();
-        $query = "Select " .
-                " count(id) as number".
-                " FROM " . 
-                "ProductInfo_Laser" .
-                " WHERE ".
-                "PO =:PO".
-                " AND ".
-                " IsPackage = '1'";
-
-        $stmt = $conn->prepare($query);
-        $stmt->bindValue(':PO', $PO, PDO::PARAM_INT);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            return $output[0]["number"];
-    }
-    
-    static function getBoxById($id_box){
-         $conn = Database::getConnection();
-        $query = "SELECT " . " * " .
-                " FROM " .
-                " Box " .
-                " WHERE " .
-                " id" . "= :id_box";
-
-        $stmt = $conn->prepare($query);
-
-        $stmt->bindValue(':id_box', $id_box, PDO::PARAM_STR);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            return $output[0]["boxNumber"];
-    }
-    
-    static function getPackedProductsOfBox($id_box){
-         $conn = Database::getConnection();
-        $query = "SELECT " .
-                 " ProductInfo_Laser.PO , ProductInfo_Laser.QR , ProductInfo_Laser.SerialNo , ProductInfo_Laser.IsPackage, ProductInfo_Laser.id_box ,".
-                 " ProductInfo.ProName , ProductInfo.CreateTime".
-                 " FROM ".
-                 " ProductInfo_Laser " .
-                 " JOIN " .
-                 " ProductInfo " .
-                 " ON " .
-                 " ProductInfo_Laser.QR = ProductInfo.QR".
-                 " WHERE ".
-                 " ProductInfo_Laser.id_box" . " = :id_box".
-                 " AND ".
-                 "ProductInfo.Station = 'Packaging'";
-        
-         //  print_r($query);
-
-        $stmt = $conn->prepare($query);
-
-        $stmt->bindValue(':id_box', $id_box, PDO::PARAM_STR);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-        if ($stmt->rowCount() == 0) {
-            echo json_encode(array("state" => "f", "message" => Config::$no_data_found));
-            exit;
-        }
-
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $output[] = $row;
-        }
-        echo json_encode($output);
-    }
-
-    static function  getProductLastMvt($QR,$extractData){
-            $conn = Database::getConnection();
-        $query = "SELECT TOP 1 " . " * " .
-                " FROM " .
-                " ProductInfo " .
-                " WHERE " .
-                " QR" . "= :QR ".
-                " ORDER BY ProId DESC";
-        $stmt = $conn->prepare($query);
-
-        $stmt->bindValue(':QR', $QR, PDO::PARAM_STR);
-
-        if (!$stmt->execute()) {
-            echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
-            exit;
-        }
-        if ($stmt->rowCount() == 0) {
-            if ($extractData) {
-                echo json_encode(array("state" => "f", "message" => Config::$no_data_found));
-                exit;
+            // Création du format personnalisé : BX-SGM12-DL-01
+            $prefix = "BX-" . $typeName . "-";
+            
+            // On cherche le dernier carton créé avec ce préfixe
+            $stmtLastBox = $conn->prepare("SELECT box_number FROM box WHERE box_number LIKE :prefix ORDER BY id DESC LIMIT 1");
+            $stmtLastBox->execute([':prefix' => $prefix . '%']);
+            
+            if ($stmtLastBox->rowCount() > 0) {
+                $lastBox = $stmtLastBox->fetch(PDO::FETCH_ASSOC)['box_number'];
+                // On extrait le dernier numéro et on ajoute 1
+                $parts = explode('-', $lastBox);
+                $lastNum = intval(end($parts)); // Récupère la dernière partie (ex: 01)
+                $nextNum = str_pad($lastNum + 1, 2, '0', STR_PAD_LEFT); // Transforme 2 en "02"
+            } else {
+                $nextNum = "01"; // Premier carton de ce type
             }
+            
+            $box_number = $prefix . $nextNum;
+            
+            // Insertion du nouveau carton
+            $stmtNewBox = $conn->prepare("INSERT INTO box (box_number, status) VALUES (:box_num, 'open')");
+            $stmtNewBox->execute([':box_num' => $box_number]);
+            $id_box = $conn->lastInsertId();
         }
 
-        $output[] = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($extractData) {
-            echo json_encode($output);
+        // 4. Insérer le compteur scanné
+        $stmtInsert = $conn->prepare("INSERT INTO meter (barcode, id_meter_type, id_box) VALUES (:barcode, :id_type, :id_box)");
+        if (!$stmtInsert->execute([':barcode' => $barcode, ':id_type' => $id_meter_type, ':id_box' => $id_box])) {
+            echo json_encode(["state" => "f", "message" => "Erreur lors de l'insertion."]);
+            exit;
         }
-        return $output;
+
+        // 5. Compter les compteurs dans ce carton
+        $stmtCount = $conn->prepare("SELECT COUNT(*) as current_qty FROM meter WHERE id_box = :id_box");
+        $stmtCount->execute([':id_box' => $id_box]);
+        $currentQty = $stmtCount->fetch(PDO::FETCH_ASSOC)['current_qty'];
+
+        $message = "success";
         
+        // 6. Fermer le carton si la limite est atteinte
+        if ($currentQty >= $qtyLimit) {
+            $stmtClose = $conn->prepare("UPDATE box SET status = 'closed' WHERE id = :id_box");
+            $stmtClose->execute([':id_box' => $id_box]);
+            $message = Config::$box_full;
+        }
+
+        echo json_encode([
+            "state" => "s",
+            "message" => $message,
+            "box_number" => $box_number,
+            "id_box" => $id_box,
+            "packed_box_qte" => "$currentQty/$qtyLimit",
+            "meter_type_name" => $typeName,
+            "barcode" => $barcode,
+            "date" => date('Y-m-d H:i:s')
+        ]);
+    }
+
+    static function getPackedMetersOfBox($id_box) {
+        $conn = Database::getConnection();
+        $stmt = $conn->prepare("SELECT m.barcode, 
+                                        DATE_FORMAT(m.create_date, '%Y-%m-%d %H:%i:%s') as date, 
+                                        t.meter_type as meter_type_name
+                                FROM meter m 
+                                JOIN meter_type t ON m.id_meter_type = t.id 
+                                WHERE m.id_box = :id_box 
+                                ORDER BY m.id DESC");
+        $stmt->execute([':id_box' => $id_box]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (count($results) > 0) {
+            echo json_encode($results);
+        } else {
+            echo json_encode([]);
+        }
     }
 }
-
 ?>
