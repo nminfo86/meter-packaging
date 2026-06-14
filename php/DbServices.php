@@ -69,7 +69,7 @@ class DbServices {
         echo json_encode($output);
     }
 
-//This function return the Box number to be inserted while creating a new box
+    //This function return the Box number to be inserted while creating a new box
     static function getInsertBoxNumber($PO) {
         $conn = Database::getConnection();
         $query = "Select " .
@@ -99,7 +99,7 @@ class DbServices {
                 "ProductInfo.Station = 'packaging'";
 
         $stmt = $conn->prepare($query);
-//        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        //$stmt->bindParam(':id', $id, PDO::PARAM_INT);
 
         if (!$stmt->execute()) {
             echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
@@ -228,7 +228,7 @@ class DbServices {
                 " WHERE " .
                 " QR " . "= :QR";
 
-//        print_r($query1);
+        //print_r($query1);
         $stmt1 = $conn->prepare($query1);
 
         $stmt1->bindValue(':id_box', $id_box, PDO::PARAM_INT);
@@ -300,7 +300,7 @@ class DbServices {
 
         if (!$stmt->execute()) {
             echo json_encode(array("state" => "f", "message" => Config::$user_error . " " . __FUNCTION__));
-            addTrace(getMsgPdoStmt($stmt1) . " " . __FUNCTION__);
+            addTrace(getMsgPdoStmt($stmt) . " " . __FUNCTION__);
             exit;
         }
     }
@@ -392,7 +392,7 @@ class DbServices {
                  " AND ".
                  "ProductInfo.Station = 'Packaging'";
         
-//         print_r($query);
+         //  print_r($query);
 
         $stmt = $conn->prepare($query);
 
