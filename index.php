@@ -19,7 +19,7 @@ require_once (__DIR__ . "/php/DbServices.php");
             </div>
 
             <div id="inputDiv" class="mb-3">
-                <input id="qrProduct" class="form-control form-control-lg col-8 m-auto text-center" type="text" placeholder="Scanner le code barre du compteur">
+                <!-- <input id="qrProduct" class="form-control form-control-lg col-8 m-auto text-center" type="text" placeholder="Scanner le code barre du compteur"> -->
                 <input id="currentBoxId" type="hidden" value="">
             </div>
             
