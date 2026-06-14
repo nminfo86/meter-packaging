@@ -8,10 +8,9 @@ $(document).ready(function () {
 
     var barcodeStr = '';
 
-    // Détection de la douchette - écoute au niveau de la fenêtre
-    window.addEventListener('keypress', e => {
-        // Ignorer les événements venant d'un input autre que meterTypeSelect
-        if (e.target.nodeName === "INPUT") return;
+    // Détection de la douchette
+    document.addEventListener('keypress', e => {
+        if (e.target.nodeName === "INPUT" && e.target.id !== "qrProduct") return;
 
         if (e.keyCode !== 13) {
             barcodeStr += e.key;
@@ -31,6 +30,7 @@ $(document).ready(function () {
             if (!/^\d+$/.test(barcode)) {
                 showAlertFailed("Erreur : Le code barre doit contenir uniquement des chiffres. Veuillez vérifier la langue de votre clavier (Caps Lock / MAJ).");
                 barcodeStr = '';
+                $("#qrProduct").val(''); // On vide l'input
                 return;
             }
 
@@ -41,6 +41,7 @@ $(document).ready(function () {
             }
             
             barcodeStr = '';
+            $("#qrProduct").val('');
         }
     });
 
@@ -85,18 +86,7 @@ $(document).ready(function () {
                     $(".meterTypeName").text(data.meter_type_name);
                     $(".boxNumber").text(data.box_number);
                     $(".packedQteBox").text(data.packed_box_qte);
-                    
-                    let currentBoxId = $("#currentBoxId").val();
                     $("#currentBoxId").val(data.id_box);
-
-                    // Si une boîte était déjà ouverte, recharger tous les compteurs emballés
-                    if (currentBoxId && currentBoxId !== data.id_box) {
-                        // Boîte différente, vider et commencer nouvelle boîte
-                        packTable.find("tbody").empty();
-                    } else if (!currentBoxId) {
-                        // Première boîte, charger les compteurs existants
-                        loadPackedMeters(data.id_box);
-                    }
 
                     let rowCount = packTable.find("tbody tr").length + 1;
                     
@@ -160,33 +150,6 @@ $(document).ready(function () {
         packTable.find("tbody").empty();
         $("#generalInfo").addClass("d-none");
         $("#currentBoxId").val('');
-    }
-
-    function loadPackedMeters(boxId) {
-        $.ajax({
-            url: "php/DbServices.php",
-            type: "POST",
-            dataType: dataType,
-            data: { function: "getPackedMetersByBox", id_box: boxId },
-            success: function (data) {
-                if (data && data.length > 0) {
-                    packTable.find("tbody").empty();
-                    $.each(data, function (index, item) {
-                        let rowCount = index + 1;
-                        let newRow = "<tr>" +
-                            "<td>" + rowCount + "</td>" +
-                            "<td class='td-barcode font-weight-bold'>" + item.barcode + "</td>" +
-                            "<td>" + item.meter_type_name + "</td>" +
-                            "<td>" + item.date + "</td>" +
-                        "</tr>";
-                        packTable.find("tbody").append(newRow);
-                    });
-                }
-            },
-            error: function () {
-                console.log("Erreur lors du chargement des compteurs emballés.");
-            }
-        });
     }
 
     function showAlertFailed(msg) {

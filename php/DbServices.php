@@ -13,9 +13,6 @@ if (isset($_POST['function'])) {
     if ($_POST['function'] == "getPackedMetersOfBox" && isset($_POST['id_box'])) {
         DbServices::getPackedMetersOfBox(intval($_POST['id_box']));
     }
-    if ($_POST['function'] == "getPackedMetersByBox" && isset($_POST['id_box'])) {
-        DbServices::getPackedMetersOfBox(intval($_POST['id_box']));
-    }
 }
 
 class DbServices {
@@ -122,9 +119,7 @@ class DbServices {
 
     static function getPackedMetersOfBox($id_box) {
         $conn = Database::getConnection();
-        $stmt = $conn->prepare("SELECT m.barcode, 
-                                        DATE_FORMAT(m.create_date, '%Y-%m-%d %H:%i:%s') as date, 
-                                        t.meter_type as meter_type_name
+        $stmt = $conn->prepare("SELECT m.barcode, m.create_date, t.meter_type 
                                 FROM meter m 
                                 JOIN meter_type t ON m.id_meter_type = t.id 
                                 WHERE m.id_box = :id_box 
@@ -133,9 +128,9 @@ class DbServices {
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         if (count($results) > 0) {
-            echo json_encode($results);
+            echo json_encode(["state" => "s", "data" => $results]);
         } else {
-            echo json_encode([]);
+            echo json_encode(["state" => "f", "message" => Config::$no_data_found]);
         }
     }
 }
