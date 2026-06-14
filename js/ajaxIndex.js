@@ -3,14 +3,14 @@ var qrAlert = $("#qrAlert");
 var packTable = $("#packTable");
 
 $(document).ready(function () {
-    $("#qrProduct").focus();
     loadMeterTypes();
 
     var barcodeStr = '';
 
-    // Détection de la douchette
+    // Amélioration 1 : Écoute du scan de manière globale (Window)
     document.addEventListener('keypress', e => {
-        if (e.target.nodeName === "INPUT" && e.target.id !== "qrProduct") return;
+        // Optionnel : ne pas bloquer si l'utilisateur écrit dans un vrai champ texte
+        if (e.target.tagName === "INPUT" && e.target.type !== "hidden" && e.target.id !== "qrProduct") return;
 
         if (e.keyCode !== 13) {
             barcodeStr += e.key;
@@ -18,35 +18,34 @@ $(document).ready(function () {
             let meterTypeId = $("#meterTypeSelect").val();
             let barcode = barcodeStr.trim();
             
-            // 1. Vérification du choix de modèle
             if (!meterTypeId) {
                 showAlertFailed("Veuillez d'abord sélectionner un Modèle !");
                 barcodeStr = '';
                 return;
             }
 
-            // 2. Validation stricte : uniquement des chiffres
-            // Cela bloque les scans si le clavier bascule en AZERTY ou majuscules
             if (!/^\d+$/.test(barcode)) {
                 showAlertFailed("Erreur : Le code barre doit contenir uniquement des chiffres. Veuillez vérifier la langue de votre clavier (Caps Lock / MAJ).");
                 barcodeStr = '';
-                $("#qrProduct").val(''); // On vide l'input
                 return;
             }
 
-            // 3. Traitement si tout est OK
             if (barcode !== '') {
                 qrAlert.addClass("d-none");
                 packMeter(barcode, meterTypeId);
             }
             
             barcodeStr = '';
-            $("#qrProduct").val('');
         }
     });
 
-    $("#meterTypeSelect").change(function() {
-        $("#qrProduct").focus();
+    // Action pour le bouton d'impression manuelle (Amélioration 3)
+    $("#manualPrintBtn").click(function() {
+        let meterName = $(this).attr("data-meter");
+        let boxNum = $(this).attr("data-box");
+        if(meterName && boxNum) {
+            printBox(meterName, boxNum);
+        }
     });
 
     function loadMeterTypes() {
@@ -88,20 +87,34 @@ $(document).ready(function () {
                     $(".packedQteBox").text(data.packed_box_qte);
                     $("#currentBoxId").val(data.id_box);
 
-                    let rowCount = packTable.find("tbody tr").length + 1;
+                    // Amélioration 2 : Reconstruction complète du tableau via l'historique de la DB
+                    packTable.find("tbody").empty();
+                    let totalMeters = data.all_meters.length;
                     
-                    let newRow = "<tr class='table-success'>" +
-                        "<td>" + rowCount + "</td>" +
-                        "<td class='td-barcode font-weight-bold'>" + data.barcode + "</td>" +
-                        "<td>" + data.meter_type_name + "</td>" +
-                        "<td>" + data.date + "</td>" +
-                    "</tr>";
-                    
-                    packTable.find("tbody").prepend(newRow);
+                    $.each(data.all_meters, function(index, meter) {
+                        // Ordre d'affichage : le plus récent en haut
+                        let rowNum = totalMeters - index; 
+                        let newRow = "<tr class='table-success'>" +
+                            "<td>" + rowNum + "</td>" +
+                            "<td class='td-barcode font-weight-bold'>" + meter.barcode + "</td>" +
+                            "<td>" + data.meter_type_name + "</td>" +
+                            "<td>" + meter.create_date + "</td>" +
+                        "</tr>";
+                        packTable.find("tbody").append(newRow); // On "append" car le tri DESC est déjà géré en SQL
+                    });
 
+                    // Gérer l'état du bouton d'impression manuelle et l'auto-print
                     if (data.message === "box-full") {
+                        // Afficher et lier les datas au bouton d'impression manuel
+                        $("#manualPrintBtn").removeClass("d-none");
+                        $("#manualPrintBtn").attr("data-meter", data.meter_type_name);
+                        $("#manualPrintBtn").attr("data-box", data.box_number);
+
                         swal("Carton Plein !", "Impression de l'étiquette en cours...", "success");
                         printBox(data.meter_type_name, data.box_number);
+                    } else {
+                        // Cacher le bouton si c'est un nouveau carton ouvert
+                        $("#manualPrintBtn").addClass("d-none");
                     }
                 }
                 $("#divLoadingcms").addClass("d-none");
@@ -121,13 +134,11 @@ $(document).ready(function () {
         $("#printDiv .qte").text("Quantité : " + qte + " Pièces");
         $("#printDiv .date").text(getDateTime());
 
-        // Récupérer tous les codes barres de la table pour l'étiquette
         $("#printDiv .sn").empty();
-        packTable.find('tbody tr .td-barcode').each(function (index) {
+        packTable.find('tbody tr .td-barcode').each(function () {
             $("#printDiv .sn").append($(this).text() + "<br>");
         });
 
-        // Générer le QR Code pour le carton entier (contenant le numéro du carton)
         $("#qrcode").empty();
         new QRCode("qrcode", {
             text: boxNumber,
@@ -146,10 +157,11 @@ $(document).ready(function () {
 
         $("#printDiv").addClass("d-none");
         
-        // Réinitialiser l'interface pour le prochain carton
-        packTable.find("tbody").empty();
-        $("#generalInfo").addClass("d-none");
-        $("#currentBoxId").val('');
+        // IMPORTANT (Amélioration 3) : 
+        // Nous retirons la réinitialisation de l'UI ici pour que le tableau reste 
+        // affiché afin que le bouton "Impression manuelle" puisse retrouver les données.
+        // Le tableau se videra automatiquement et se recréera au premier scan du NOUVEAU carton 
+        // grâce à "packTable.find("tbody").empty()" exécuté au début du callback "success" de packMeter.
     }
 
     function showAlertFailed(msg) {

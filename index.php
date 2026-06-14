@@ -11,10 +11,13 @@ require_once (__DIR__ . "/php/DbServices.php");
 
         <div class="welcome-user text-center">
             <div class="row justify-content-center mb-3">
-                <div class="col-md-6">
-                    <select id="meterTypeSelect" class="form-control form-control-lg text-center" style="border: 2px solid #007bff; font-weight: bold;">
+                <div class="col-md-8 d-flex justify-content-center align-items-center">
+                    <select id="meterTypeSelect" class="form-control form-control-lg text-center w-75" style="border: 2px solid #007bff; font-weight: bold;">
                         <option value="" disabled selected>-- Sélectionnez le Type de Compteur --</option>
                     </select>
+                    <button id="manualPrintBtn" class="btn btn-success btn-lg ml-3 d-none" title="Imprimer l'étiquette du carton fermé">
+                        <i class="fas fa-print"></i> Imprimer
+                    </button>
                 </div>
             </div>
 

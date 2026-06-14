@@ -91,10 +91,11 @@ class DbServices {
             exit;
         }
 
-        // 5. Compter les compteurs dans ce carton
-        $stmtCount = $conn->prepare("SELECT COUNT(*) as current_qty FROM meter WHERE id_box = :id_box");
-        $stmtCount->execute([':id_box' => $id_box]);
-        $currentQty = $stmtCount->fetch(PDO::FETCH_ASSOC)['current_qty'];
+        // 5. Récupérer tous les compteurs actuellement dans ce carton (pour l'historique UI)
+        $stmtAllMeters = $conn->prepare("SELECT barcode, create_date FROM meter WHERE id_box = :id_box ORDER BY id DESC");
+        $stmtAllMeters->execute([':id_box' => $id_box]);
+        $allMeters = $stmtAllMeters->fetchAll(PDO::FETCH_ASSOC);
+        $currentQty = count($allMeters); // On compte la taille du tableau directement
 
         $message = "success";
         
@@ -102,7 +103,7 @@ class DbServices {
         if ($currentQty >= $qtyLimit) {
             $stmtClose = $conn->prepare("UPDATE box SET status = 'closed' WHERE id = :id_box");
             $stmtClose->execute([':id_box' => $id_box]);
-            $message = Config::$box_full;
+            $message = "box-full"; // On garde le message codé en dur pour faire correspondre avec le frontend
         }
 
         echo json_encode([
@@ -113,7 +114,8 @@ class DbServices {
             "packed_box_qte" => "$currentQty/$qtyLimit",
             "meter_type_name" => $typeName,
             "barcode" => $barcode,
-            "date" => date('Y-m-d H:i:s')
+            "date" => date('Y-m-d H:i:s'),
+            "all_meters" => $allMeters // NOUVEAU: On envoie l'historique complet du carton
         ]);
     }
 
