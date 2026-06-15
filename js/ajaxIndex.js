@@ -25,7 +25,7 @@ $(document).ready(function () {
             }
 
             if (!/^\d+$/.test(barcode)) {
-                showAlertFailed("Erreur : Le code barre doit contenir uniquement des chiffres. Veuillez vérifier la langue de votre clavier (Caps Lock / MAJ).");
+                showAlertFailed("Erreur BareCode. Vérifier la langue de votre clavier.");
                 barcodeStr = '';
                 return;
             }
@@ -77,9 +77,35 @@ $(document).ready(function () {
             },
             beforeSend: function () { $("#divLoadingcms").removeClass("d-none"); },
             success: function (data) {
-                if (data.state === "f") {
+                // Gestion du compteur déjà emballé
+                if (data.state === "already_packed") {
+                    let currentUIRows = packTable.find("tbody tr").length;
+                    
+                    // MODIFICATION : On vérifie que l'UI est vide ET que le carton est FERMÉ ("closed")
+                    if (currentUIRows === 0 && data.box_status === "closed") {
+                        
+                        swal({
+                            title: "Compteur déjà emballé !",
+                            text: data.message + "\nCe carton est déjà fermé. Voulez-vous l'ouvrir pour consulter ou réimprimer l'étiquette ?",
+                            icon: "warning",
+                            buttons: ["Non", "Oui, l'ouvrir"],
+                            dangerMode: false,
+                        }).then((result) => {
+                            let isConfirmed = (result === true) || (result && result.isConfirmed);
+                            if (isConfirmed) {
+                                loadBoxData(data.id_box);
+                            }
+                        });
+                        
+                    } else {
+                        // L'UI n'est pas vide, OU le carton est toujours ouvert : on affiche juste l'erreur
+                        showAlertFailed(data.message);
+                    }
+                } 
+                else if (data.state === "f") {
                     showAlertFailed(data.message);
-                } else if (data.state === "s") {
+                } 
+                else if (data.state === "s") {
                     
                     $("#generalInfo").removeClass("d-none");
                     $(".meterTypeName").text(data.meter_type_name);
@@ -121,6 +147,55 @@ $(document).ready(function () {
             },
             error: function () {
                 showAlertFailed("Erreur de communication avec le serveur.");
+                $("#divLoadingcms").addClass("d-none");
+            }
+        });
+    }
+
+    // Fonction permettant de charger et d'afficher un carton depuis la BDD
+    function loadBoxData(id_box) {
+        $.ajax({
+            url: "php/DbServices.php",
+            type: "POST",
+            dataType: dataType,
+            data: { function: "reopenBox", id_box: id_box },
+            beforeSend: function () { $("#divLoadingcms").removeClass("d-none"); },
+            success: function (data) {
+                if (data.state === "f") {
+                    showAlertFailed(data.message);
+                } else if (data.state === "s") {
+                    
+                    // Remplir les informations de l'entête
+                    $("#generalInfo").removeClass("d-none");
+                    $(".meterTypeName").text(data.meter_type_name);
+                    $(".boxNumber").text(data.box_number);
+                    $(".packedQteBox").text(data.packed_box_qte);
+                    $("#currentBoxId").val(data.id_box);
+
+                    // Reconstruire le tableau
+                    packTable.find("tbody").empty();
+                    let totalMeters = data.all_meters.length;
+                    
+                    $.each(data.all_meters, function(index, meter) {
+                        let rowNum = totalMeters - index; 
+                        let newRow = "<tr class='table-success'>" +
+                            "<td>" + rowNum + "</td>" +
+                            "<td class='td-barcode font-weight-bold'>" + meter.barcode + "</td>" +
+                            "<td>" + data.meter_type_name + "</td>" +
+                            "<td>" + meter.create_date + "</td>" +
+                        "</tr>";
+                        packTable.find("tbody").append(newRow);
+                    });
+
+                    // Afficher et attribuer les données au bouton d'impression manuel
+                    $("#manualPrintBtn").removeClass("d-none");
+                    $("#manualPrintBtn").attr("data-meter", data.meter_type_name);
+                    $("#manualPrintBtn").attr("data-box", data.box_number);
+                }
+                $("#divLoadingcms").addClass("d-none");
+            },
+            error: function () {
+                showAlertFailed("Erreur lors de la récupération des données du carton.");
                 $("#divLoadingcms").addClass("d-none");
             }
         });
