@@ -7,12 +7,25 @@
      position: relative;
      white-space: nowrap;
 }
+.saieg{
+  position: absolute;
+  top: 0.5%;
+  left: 20%;
+  /* font-size: 1.3em; */
+  text-align: center;
+}
+.contrat{
+  font-style: italic;
+}
 
+.nomenclature{
+  font-style: italic;
+}
 .productName{
   position: absolute;
-  bottom: 68.5%;
-  left: 11.5%;
-font-size: 1.6em;
+  top: 117%;
+  left: 20%;
+font-size: 1.9em;
 }
 .calibre{
   position: absolute;
@@ -20,29 +33,27 @@ font-size: 1.6em;
   left: 24%;
 font-size: 2.2em;
 }
-.boxNumber{
-  /* position: absolute;
-  bottom: 55.8%;
-  left: 12.8%;
-  font-size: 1.3em; */
+.boxNumberPrint{
+  position: absolute;
+  top: 150%;
+  left: 55%;
+  font-size: 1.6em;
 }
 #qrcode{
     position: absolute;
-     bottom: 53.1%;
-  left: 41%;
+     top: 180%;
+  left: 65%;
 }
-.sn{
+.bareCodePrint{
   position: absolute;
-  bottom: 10%;
+  top: 145%;
   left: 2.6%;
-  font-size: 1.25em;
-  line-height: 1.8;
-  text-align: justify;
+  border-collapse: collapse;
 }
 .qte{
   position: absolute;
-  bottom: 3%;
-  left: 39%;
+  top: 240%;
+  left: 60%;
 }
 .date{
   position: absolute;

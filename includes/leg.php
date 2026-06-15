@@ -6,7 +6,7 @@
 <!--<script src="_plugins/js/sweetalert2.all.min.js"></script>-->
 <script src="_plugins/js/print.min.js"></script>
 <script src="_plugins/js/qrcode.min.js"></script>
-
+<script src="_plugins/js/JsBarcode.all.min.js"></script>
 
 <!--bootstrap.bundle.min.js already containe bootstrap and popper-->
 <script src="_rdf/js/bootstrap.bundle.min.js"></script>
