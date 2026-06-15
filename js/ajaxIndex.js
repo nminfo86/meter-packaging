@@ -100,30 +100,37 @@ $(document).ready(function () {
             },
             beforeSend: function () { $("#divLoadingcms").removeClass("d-none"); },
             success: function (data) {
-                // Gestion du compteur déjà emballé
                 if (data.state === "already_packed") {
                     let currentUIRows = packTable.find("tbody tr").length;
-                    
-                    // MODIFICATION : On vérifie que l'UI est vide ET que le carton est FERMÉ ("closed")
                     if (currentUIRows === 0 && data.box_status === "closed") {
-                        
                         swal({
                             title: "Compteur déjà emballé !",
-                            text: data.message + "\nCe carton est déjà fermé. Voulez-vous l'ouvrir pour consulter ou réimprimer l'étiquette ?",
+                            text: data.message + "\nCe carton est déjà fermé. Voulez-vous l'ouvrir ?",
                             icon: "warning",
                             buttons: ["Non", "Oui, l'ouvrir"],
-                            dangerMode: false,
                         }).then((result) => {
-                            let isConfirmed = (result === true) || (result && result.isConfirmed);
-                            if (isConfirmed) {
-                                loadBoxData(data.id_box);
-                            }
+                            if ((result === true) || (result && result.isConfirmed)) loadBoxData(data.id_box);
                         });
-                        
                     } else {
-                        // L'UI n'est pas vide, OU le carton est toujours ouvert : on affiche juste l'erreur
                         showAlertFailed(data.message);
                     }
+                }
+                // --- NOUVEAU : Gestion de la séquence brisée ---
+                else if (data.state === "sequence_broken") {
+                    swal({
+                        title: "Séquence Brisée !",
+                        text: data.message + "\n\nLe système attendait le N° " + data.expected + ".\nVoulez-vous le déclarer en attente (manquant) ?",
+                        icon: "warning",
+                        buttons: ["Annuler", "Oui, déclarer en attente"],
+                        dangerMode: true,
+                    }).then((willDeclare) => {
+                        if (willDeclare) {
+                            // On passe le code scanné original pour pouvoir le re-scanner automatiquement
+                            declareWaitMeter(data.expected, meterTypeId, barcode);
+                        } else {
+                            showAlertFailed("Opération annulée. Scannez le compteur attendu ("+data.expected+").");
+                        }
+                    });
                 } 
                 else if (data.state === "f") {
                     showAlertFailed(data.message);
@@ -136,41 +143,37 @@ $(document).ready(function () {
                     $(".packedQteBox").text(data.packed_box_qte);
                     $("#currentBoxId").val(data.id_box);
 
-                    // Amélioration 2 : Reconstruction complète du tableau via l'historique de la DB
                     packTable.find("tbody").empty();
                     let totalMeters = data.all_meters.length;
                     
                     $.each(data.all_meters, function(index, meter) {
-                        // Ordre d'affichage : le plus récent en haut
                         let rowNum = totalMeters - index; 
-                        let newRow = "<tr class='table-success'>" +
+                        
+                        // --- NOUVEAU : Coloration selon le statut ---
+                        let rowClass = meter.status === 'wait' ? 'table-warning text-danger' : 'table-success';
+                        let statusIcon = meter.status === 'wait' ? ' <i class="fas fa-exclamation-triangle"></i> (Attente)' : '';
+
+                        let newRow = "<tr class='" + rowClass + "'>" +
                             "<td>" + rowNum + "</td>" +
-                            "<td class='td-barcode font-weight-bold'>" + meter.barcode + "</td>" +
+                            "<td class='td-barcode font-weight-bold'>" + meter.barcode + statusIcon + "</td>" +
                             "<td>" + data.meter_type_name + "</td>" +
                             "<td>" + meter.create_date + "</td>" +
                         "</tr>";
-                        packTable.find("tbody").append(newRow); // On "append" car le tri DESC est déjà géré en SQL
+                        packTable.find("tbody").append(newRow);
                     });
 
-                    // Gérer l'état du bouton d'impression manuelle et l'auto-print
+                    // Gestion des différents cas de fermeture/attente
                     if (data.message === "box-full") {
-                        
-                        // 1. On lance l'impression directement en arrière-plan
                         printBox(data.meter_type_name, data.box_number);
-                        
-                        // 2. On affiche l'alerte. Une fois fermée par l'utilisateur, on vide l'UI
-                        // swal({
-                        //     title: "Carton Plein !",
-                        //     text: "Impression de l'étiquette en cours...\nCliquez sur OK pour passer au nouveau carton.",
-                        //     icon: "success",
-                        //     button: "OK",
-                        //     closeOnClickOutside: false // Empêche de fermer l'alerte en cliquant à côté
-                        // }).then(() => {
-                            clearUI(); // L'interface se vide uniquement quand on clique sur OK
-                        // });
-
+                        clearUI();
+                    } else if (data.message === "box-full-wait") {
+                        swal("Carton mis en pause", "Ce carton est plein, mais il contient des compteurs en attente. Mettez-le de côté. L'étiquette ne sera pas imprimée.", "info");
+                        $("#manualPrintBtn").addClass("d-none");
+                        clearUI(); 
+                    } else if (data.message === "wait-resolved") {
+                        swal("Compteur Régularisé", "Le compteur manquant a été réintégré à son carton !", "success");
+                        $("#manualPrintBtn").addClass("d-none");
                     } else {
-                        // Cacher le bouton si c'est un nouveau carton ouvert
                         $("#manualPrintBtn").addClass("d-none");
                     }
                 }
@@ -183,54 +186,93 @@ $(document).ready(function () {
         });
     }
 
-    // Fonction permettant de charger et d'afficher un carton depuis la BDD
-    function loadBoxData(id_box) {
+    // NOUVELLE FONCTION : Déclare le compteur et re-scanne l'actuel
+    function declareWaitMeter(expectedBarcode, meterTypeId, originalScannedBarcode) {
         $.ajax({
             url: "php/DbServices.php",
             type: "POST",
             dataType: dataType,
-            data: { function: "reopenBox", id_box: id_box },
+            data: {
+                function: "declareWaitMeter",
+                expected_barcode: expectedBarcode,
+                id_meter_type: meterTypeId
+            },
             beforeSend: function () { $("#divLoadingcms").removeClass("d-none"); },
-            success: function (data) {
-                if (data.state === "f") {
+            success: function(data) {
+                if (data.state === "s") {
+                    swal("Déclaré !", "Le compteur " + expectedBarcode + " a bien été mis en attente.", "success");
+                    
+                    // MAGIE UX : Une fois le compteur manquant déclaré, on relance automatiquement
+                    // le scan du compteur que l'opérateur tenait dans la main (originalScannedBarcode).
+                    setTimeout(function() {
+                        packMeter(originalScannedBarcode, meterTypeId);
+                    }, 1200);
+                    
+                } else {
                     showAlertFailed(data.message);
-                } else if (data.state === "s") {
-                    
-                    // Remplir les informations de l'entête
-                    $("#generalInfo").removeClass("d-none");
-                    $(".meterTypeName").text(data.meter_type_name);
-                    $(".boxNumber").text(data.box_number);
-                    $(".packedQteBox").text(data.packed_box_qte);
-                    $("#currentBoxId").val(data.id_box);
-
-                    // Reconstruire le tableau
-                    packTable.find("tbody").empty();
-                    let totalMeters = data.all_meters.length;
-                    
-                    $.each(data.all_meters, function(index, meter) {
-                        let rowNum = totalMeters - index; 
-                        let newRow = "<tr class='table-success'>" +
-                            "<td>" + rowNum + "</td>" +
-                            "<td class='td-barcode font-weight-bold'>" + meter.barcode + "</td>" +
-                            "<td>" + data.meter_type_name + "</td>" +
-                            "<td>" + meter.create_date + "</td>" +
-                        "</tr>";
-                        packTable.find("tbody").append(newRow);
-                    });
-
-                    // Afficher et attribuer les données au bouton d'impression manuel
-                    $("#manualPrintBtn").removeClass("d-none");
-                    $("#manualPrintBtn").attr("data-meter", data.meter_type_name);
-                    $("#manualPrintBtn").attr("data-box", data.box_number);
                 }
                 $("#divLoadingcms").addClass("d-none");
             },
             error: function () {
-                showAlertFailed("Erreur lors de la récupération des données du carton.");
+                showAlertFailed("Erreur lors de la déclaration en attente.");
                 $("#divLoadingcms").addClass("d-none");
             }
         });
     }
+
+    // Fonction permettant de charger et d'afficher un carton depuis la BDD
+    function loadBoxData(id_box) {
+    $.ajax({
+        url: "php/DbServices.php",
+        type: "POST",
+        dataType: dataType,
+        data: { function: "reopenBox", id_box: id_box },
+        beforeSend: function () { $("#divLoadingcms").removeClass("d-none"); },
+        success: function (data) {
+            if (data.state === "f") {
+                showAlertFailed(data.message);
+            } else if (data.state === "s") {
+                
+                // Remplir les informations de l'entête
+                $("#generalInfo").removeClass("d-none");
+                $(".meterTypeName").text(data.meter_type_name);
+                $(".boxNumber").text(data.box_number);
+                $(".packedQteBox").text(data.packed_box_qte);
+                $("#currentBoxId").val(data.id_box);
+
+                // Reconstruire le tableau
+                packTable.find("tbody").empty();
+                let totalMeters = data.all_meters.length;
+                
+                $.each(data.all_meters, function(index, meter) {
+                    let rowNum = totalMeters - index; 
+                    
+                    // --- NOUVEAU : Gestion de la coloration et du statut en fonction de la BDD ---
+                    let rowClass = meter.status === 'wait' ? 'table-warning text-danger' : 'table-success';
+                    let statusIcon = meter.status === 'wait' ? ' <i class="fas fa-exclamation-triangle"></i> (Attente)' : '';
+
+                    let newRow = "<tr class='" + rowClass + "'>" +
+                        "<td>" + rowNum + "</td>" +
+                        "<td class='td-barcode font-weight-bold'>" + meter.barcode + statusIcon + "</td>" +
+                        "<td>" + data.meter_type_name + "</td>" +
+                        "<td>" + meter.create_date + "</td>" +
+                    "</tr>";
+                    packTable.find("tbody").append(newRow);
+                });
+
+                // Afficher et attribuer les données au bouton d'impression manuel
+                $("#manualPrintBtn").removeClass("d-none");
+                $("#manualPrintBtn").attr("data-meter", data.meter_type_name);
+                $("#manualPrintBtn").attr("data-box", data.box_number);
+            }
+            $("#divLoadingcms").addClass("d-none");
+        },
+        error: function () {
+            showAlertFailed("Erreur lors de la récupération des données du carton.");
+            $("#divLoadingcms").addClass("d-none");
+        }
+    });
+}
 
     function printBox(meterTypeName, boxNumber) {
         let qte = packTable.find("tbody tr").length;
