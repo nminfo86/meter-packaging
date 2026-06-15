@@ -25,10 +25,32 @@ $(document).ready(function () {
             }
 
             if (!/^\d+$/.test(barcode)) {
-                showAlertFailed("Erreur BareCode. Vérifier la langue de votre clavier.");
+                showAlertFailed("Erreur BarreCode. Vérifier la langue de votre clavier.");
                 barcodeStr = '';
                 return;
             }
+
+            // --- NOUVELLE VÉRIFICATION DU MODÈLE DE COMPTEUR ---
+            let selectedOption = $("#meterTypeSelect").find(':selected');
+            let expectedModelCode = selectedOption.attr('data-model-code');
+            let selectedModelName = selectedOption.text().split(' (')[0]; // Récupère le nom sans la parenthèse
+            
+            // On s'assure que le code fait au moins 5 caractères de long pour éviter un bug
+            if (barcode.length >= 5) {
+                // charAt(4) cible le 5ème caractère, car l'indexation commence à 0 (0,1,2,3,4)
+                let scannedModelCode = barcode.charAt(4); 
+                
+                if (scannedModelCode !== expectedModelCode) {
+                    showAlertFailed("Erreur : Ce compteur n'est pas un " + selectedModelName + " ! (Code trouvé : " + scannedModelCode + ", Code attendu : " + expectedModelCode + ")");
+                    barcodeStr = ''; // On vide la variable pour le prochain scan
+                    return; // On bloque l'exécution ici, rien ne sera envoyé au serveur
+                }
+            } else {
+                showAlertFailed("Erreur : Code barre invalide (trop court).");
+                barcodeStr = '';
+                return;
+            }
+            // --- FIN DE LA VÉRIFICATION ---
 
             if (barcode !== '') {
                 qrAlert.addClass("d-none");
@@ -58,6 +80,7 @@ $(document).ready(function () {
                 $.each(data, function (index, item) {
                     $("#meterTypeSelect").append($('<option>', {
                         value: item.id,
+                        'data-model-code': item.model_code, // NOUVEAU : On stocke le code du modèle (ex: 1 ou 2)
                         text: item.meter_type + " (Carton de " + item.qty_box + ")"
                     }));
                 });
@@ -131,13 +154,21 @@ $(document).ready(function () {
 
                     // Gérer l'état du bouton d'impression manuelle et l'auto-print
                     if (data.message === "box-full") {
-                        // Afficher et lier les datas au bouton d'impression manuel
-                        $("#manualPrintBtn").removeClass("d-none");
-                        $("#manualPrintBtn").attr("data-meter", data.meter_type_name);
-                        $("#manualPrintBtn").attr("data-box", data.box_number);
-
-                        swal("Carton Plein !", "Impression de l'étiquette en cours...", "success");
+                        
+                        // 1. On lance l'impression directement en arrière-plan
                         printBox(data.meter_type_name, data.box_number);
+                        
+                        // 2. On affiche l'alerte. Une fois fermée par l'utilisateur, on vide l'UI
+                        // swal({
+                        //     title: "Carton Plein !",
+                        //     text: "Impression de l'étiquette en cours...\nCliquez sur OK pour passer au nouveau carton.",
+                        //     icon: "success",
+                        //     button: "OK",
+                        //     closeOnClickOutside: false // Empêche de fermer l'alerte en cliquant à côté
+                        // }).then(() => {
+                            clearUI(); // L'interface se vide uniquement quand on clique sur OK
+                        // });
+
                     } else {
                         // Cacher le bouton si c'est un nouveau carton ouvert
                         $("#manualPrintBtn").addClass("d-none");
@@ -237,6 +268,19 @@ $(document).ready(function () {
         // affiché afin que le bouton "Impression manuelle" puisse retrouver les données.
         // Le tableau se videra automatiquement et se recréera au premier scan du NOUVEAU carton 
         // grâce à "packTable.find("tbody").empty()" exécuté au début du callback "success" de packMeter.
+    }
+
+    // Fonction pour remettre l'interface à zéro
+    function clearUI() {
+        $("#generalInfo").addClass("d-none"); // Cache les infos du carton
+        $(".meterTypeName").text("");
+        $(".boxNumber").text("");
+        $(".packedQteBox").text("0/0");
+        $("#currentBoxId").val("");
+        
+        packTable.find("tbody").empty(); // Vide le tableau
+        
+        $("#manualPrintBtn").addClass("d-none"); // Cache le bouton d'impression manuel
     }
 
     function showAlertFailed(msg) {

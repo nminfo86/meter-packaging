@@ -22,7 +22,7 @@ class DbServices {
 
     static function getMeterTypes() {
         $conn = Database::getConnection();
-        $stmt = $conn->prepare("SELECT id, meter_type, qty_box FROM meter_type");
+        $stmt = $conn->prepare("SELECT id, meter_type, qty_box, model_code FROM meter_type");
         $stmt->execute();
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
