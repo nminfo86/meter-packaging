@@ -1,5 +1,5 @@
 #packTable tr{
-    font-size: 1.3em;
+    font-size: 1.05em;
 }
 
 #printDiv{
@@ -21,10 +21,10 @@ font-size: 1.6em;
 font-size: 2.2em;
 }
 .boxNumber{
-     position: absolute;
+  /* position: absolute;
   bottom: 55.8%;
   left: 12.8%;
-  font-size: 1.3em;
+  font-size: 1.3em; */
 }
 #qrcode{
     position: absolute;

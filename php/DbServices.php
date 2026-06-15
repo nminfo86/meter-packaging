@@ -13,13 +13,16 @@ if (isset($_POST['function'])) {
     if ($_POST['function'] == "getPackedMetersOfBox" && isset($_POST['id_box'])) {
         DbServices::getPackedMetersOfBox(intval($_POST['id_box']));
     }
+    if ($_POST['function'] == "reopenBox" && isset($_POST['id_box'])) {
+        DbServices::reopenBox(intval($_POST['id_box']));
+    }
 }
 
 class DbServices {
 
     static function getMeterTypes() {
         $conn = Database::getConnection();
-        $stmt = $conn->prepare("SELECT id, meter_type, qty_box FROM meter_type");
+        $stmt = $conn->prepare("SELECT id, meter_type, qty_box, model_code FROM meter_type");
         $stmt->execute();
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
@@ -28,10 +31,23 @@ class DbServices {
         $conn = Database::getConnection();
 
         // 1. Vérifier si le compteur est déjà scanné/emballé
-        $stmtCheck = $conn->prepare("SELECT id, id_box FROM meter WHERE barcode = :barcode");
+        // MODIFICATION : On fait une jointure avec la table 'box' pour obtenir son statut
+        $stmtCheck = $conn->prepare("
+            SELECT m.id, m.id_box, b.status 
+            FROM meter m 
+            LEFT JOIN box b ON m.id_box = b.id 
+            WHERE m.barcode = :barcode
+        ");
         $stmtCheck->execute([':barcode' => $barcode]);
+        
         if ($stmtCheck->rowCount() > 0) {
-            echo json_encode(["state" => "f", "message" => "Ce compteur (Code: $barcode) est déjà emballé !"]);
+            $row = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            echo json_encode([
+                "state" => "already_packed", 
+                "message" => "Ce compteur (Code: $barcode) est déjà emballé !",
+                "id_box" => $row['id_box'],
+                "box_status" => $row['status'] // Ajout du statut du carton ('open' ou 'closed')
+            ]);
             exit;
         }
 
@@ -133,6 +149,43 @@ class DbServices {
             echo json_encode(["state" => "s", "data" => $results]);
         } else {
             echo json_encode(["state" => "f", "message" => Config::$no_data_found]);
+        }
+    }
+
+    static function reopenBox($id_box) {
+        $conn = Database::getConnection();
+        
+        // 1. Obtenir les infos générales du carton et le type de compteur
+        $stmtBox = $conn->prepare("SELECT b.box_number, t.meter_type, t.qty_box 
+                                   FROM box b
+                                   JOIN meter m ON m.id_box = b.id
+                                   JOIN meter_type t ON m.id_meter_type = t.id
+                                   WHERE b.id = :id_box
+                                   LIMIT 1");
+        $stmtBox->execute([':id_box' => $id_box]);
+        
+        if ($stmtBox->rowCount() > 0) {
+            $boxInfo = $stmtBox->fetch(PDO::FETCH_ASSOC);
+            $box_number = $boxInfo['box_number'];
+            $typeName = $boxInfo['meter_type'];
+            $qtyLimit = $boxInfo['qty_box'];
+            
+            // 2. Obtenir tous les compteurs liés à ce carton pour rebâtir le tableau
+            $stmtAllMeters = $conn->prepare("SELECT barcode, create_date FROM meter WHERE id_box = :id_box ORDER BY id DESC");
+            $stmtAllMeters->execute([':id_box' => $id_box]);
+            $allMeters = $stmtAllMeters->fetchAll(PDO::FETCH_ASSOC);
+            $currentQty = count($allMeters);
+            
+            echo json_encode([
+                "state" => "s",
+                "box_number" => $box_number,
+                "id_box" => $id_box,
+                "packed_box_qte" => "$currentQty/$qtyLimit",
+                "meter_type_name" => $typeName,
+                "all_meters" => $allMeters
+            ]);
+        } else {
+            echo json_encode(["state" => "f", "message" => "Carton introuvable."]);
         }
     }
 }
