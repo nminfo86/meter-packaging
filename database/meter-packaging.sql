@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : dim. 14 juin 2026 à 14:29
+-- Généré le : lun. 15 juin 2026 à 07:02
 -- Version du serveur : 8.0.31
 -- Version de PHP : 8.1.13
 
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `box` (
   `update_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `id_palette` (`id_palette`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `meter` (
   PRIMARY KEY (`id`),
   KEY `id_meter_type` (`id_meter_type`),
   KEY `id_box` (`id_box`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS `meter_type` (
   `meter_type` varchar(100) NOT NULL DEFAULT '',
   `qty_box` int NOT NULL,
   `qty_box_palette` int NOT NULL,
+  `homologation` varchar(250) NOT NULL,
+  `contrat` varchar(250) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -77,9 +79,9 @@ CREATE TABLE IF NOT EXISTS `meter_type` (
 -- Déchargement des données de la table `meter_type`
 --
 
-INSERT INTO `meter_type` (`id`, `meter_type`, `qty_box`, `qty_box_palette`) VALUES
-(1, 'Monophase', 10, 6),
-(2, 'Triphase', 5, 4);
+INSERT INTO `meter_type` (`id`, `meter_type`, `qty_box`, `qty_box_palette`, `homologation`, `contrat`) VALUES
+(1, 'SGM12-DL', 4, 6, 'Homologation ONML N° 125/ONML/2026', 'Contrat N° 01/SAIEG-SD/2026'),
+(2, 'Triphase', 5, 4, 'Homologation ONML N° 125/ONML/2026', 'Contrat N° 01/SAIEG-SD/2026');
 
 -- --------------------------------------------------------
 
