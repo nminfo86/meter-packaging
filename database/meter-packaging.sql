@@ -58,7 +58,8 @@ CREATE TABLE IF NOT EXISTS `meter` (
   KEY `id_box` (`id_box`)
 ) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- --------------------------------------------------------
+--
+ --------------------------------------------------------
 
 --
 -- Structure de la table `meter_type`
