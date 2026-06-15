@@ -58,16 +58,36 @@ require_once (__DIR__ . "/php/DbServices.php");
         </div>
 
         <div id="printDiv" class="d-none">
+            
+            <h4 class="saieg"> SOCIETE ALGERIENNE DES INDUSTRIES<br>ELECTRIQUES ET GAZIERS</h4>
+            <img id="saieglogo" src="images/misc/SaiegLogo.png" class="mb-2">
+            <h5 class="contrat" id=""></h5>
+            <h5 class="nomenclature"></h5>
+
             <h3 class="productName text-center font-weight-bold"></h3>
-            <hr>
-            <h4 class="boxNumber"></h4>
+
+            <h4 class="boxNumberPrint"></h4>
             <div id="qrcode" class="mt-2 mb-2"></div>
-            <h5 class="qte"></h5>
-            <hr>
-            <h5 class="sn" style="font-family: monospace;"></h5>
-            <hr>
-            <h4 class="date text-right"></h4>
-            <img id="imgLabel" src="images/misc/label2.bmp" class="mt-2">
+
+            <table class= "bareCodePrint">
+                <tr>
+                    <td style="padding: 5px; border-bottom: 1px dashed #ddd;">
+                        <h6 style="font-weight: bold; margin-bottom: 3px; font-size: 13px; text-transform: uppercase; color: #555;">Premier numéro</h6>
+                        <svg id="firstBarcode" style="max-width: 90%; height: auto;"></svg>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 5px 5px 5px;">
+                        <h6 style="font-weight: bold; margin-bottom: 3px; font-size: 13px; text-transform: uppercase; color: #555;">Dernier numéro</h6>
+                        <svg id="lastBarcode" style="max-width: 90%; height: auto;"></svg>
+                    </td>
+                </tr>
+            </table>
+
+            <h4 class="qte"></h4>
+
+            <h4 class="date text-right d-none"></h4>
+            <img id="imgLabel" src="images/misc/label2.bmp" class="mt-2 d-none">
         </div>
 
     </section>
