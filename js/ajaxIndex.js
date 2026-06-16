@@ -313,20 +313,20 @@ $(document).ready(function () {
             JsBarcode("#firstBarcode", firstBarcodeValue, {
                 format: "CODE128", // Format très fiable pour les numéros de série industriels
                 displayValue: true, // Affiche les chiffres (ex: 852610000008) sous les barres
-                fontSize: 16,
+                fontSize: 17,
                 fontOptions: "bold",
                 height: 50,
-                width: 1.7,
+                width: 1.9,
                 margin: 0
             });
 
             JsBarcode("#lastBarcode", lastBarcodeValue, {
                 format: "CODE128",
                 displayValue: true,
-                fontSize: 16,
+                fontSize: 17,
                 fontOptions: "bold",
                 height: 50,
-                width: 1.7,
+                width: 1.9,
                 margin: 0
             });
         }
@@ -335,8 +335,8 @@ $(document).ready(function () {
         $("#qrcode").empty();
         new QRCode("qrcode", {
             text: boxNumber,
-            width: 80,
-            height: 80,
+            width: 90,
+            height: 90,
             correctLevel: QRCode.CorrectLevel.H
         });
 

@@ -1,12 +1,11 @@
-
-
 <!--Start Footer-->
 <div class="container">
     <p id="gototop" class="pull-right"><a href="#">Retour en haut</a></p>
     <footer>
-        <p><small><a href="http://bouhezila.com" target="_blank"></a> 
-                Created by " The Management Assistant" of the Electricity Division ;)</small></p> 
-                <p><small id="copyrightCms"></small></p>   
+        <p> Created by
+            <small><a href="https://www.linkedin.com/in/nassim-bouhezila" target="_blank">Nminfo.</a>
+            </small><small id="copyrightCms"></small>
+        </p>
     </footer>
 </div>
 <!--End Footer-->

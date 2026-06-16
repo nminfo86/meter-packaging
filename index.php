@@ -5,7 +5,7 @@ require_once (__DIR__ . "/php/DbServices.php");
 <html>
 <?php include "includes/head.php"; ?>
 
-<body id="Admin panel">
+<body id="Meter">
     <?php include "includes/header.php"; ?>
     <section class="container mt-4">
 
@@ -77,7 +77,7 @@ require_once (__DIR__ . "/php/DbServices.php");
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding: 8px 5px 5px 5px;">
+                    <td style="padding: 20px 5px 5px 5px;">
                         <h6 style="font-weight: bold; margin-bottom: 3px; font-size: 13px; text-transform: uppercase; color: #555;">Dernier numéro</h6>
                         <svg id="lastBarcode" style="max-width: 90%; height: auto;"></svg>
                     </td>
@@ -86,8 +86,8 @@ require_once (__DIR__ . "/php/DbServices.php");
 
             <h4 class="qte"></h4>
 
-            <h4 class="date text-right d-none"></h4>
-            <img id="imgLabel" src="images/misc/label2.bmp" class="mt-2 d-none">
+            <!-- <h4 class="date text-right d-none"></h4> -->
+            <!-- <img id="imgLabel" src="images/misc/label2.bmp" class="mt-2 d-none"> -->
         </div>
 
     </section>
