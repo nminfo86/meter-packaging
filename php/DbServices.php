@@ -20,13 +20,24 @@ if (isset($_POST['function'])) {
     if ($_POST['function'] == "reopenBox" && isset($_POST['id_box'])) {
         DbServices::reopenBox(intval($_POST['id_box']));
     }
+
+    // --- NOUVELLES ROUTES POUR LA GESTION DES PALETTES ---
+    if ($_POST['function'] == "packBox" && isset($_POST['box_number']) && isset($_POST['id_meter_type'])) {
+        DbServices::packBox(trim($_POST['box_number']), intval($_POST['id_meter_type']));
+    }
+    if ($_POST['function'] == "reopenPalette" && isset($_POST['id_palette'])) {
+        DbServices::reopenPalette(intval($_POST['id_palette']));
+    }
+    if ($_POST['function'] == "getPalettePrintData" && isset($_POST['id_palette'])) {
+        DbServices::getPalettePrintData(intval($_POST['id_palette']));
+    }
 }
 
 class DbServices {
 
     static function getMeterTypes() {
         $conn = Database::getConnection();
-        $stmt = $conn->prepare("SELECT id, meter_type, qty_box, model_code, contrat, nomenclature FROM meter_type");
+        $stmt = $conn->prepare("SELECT * FROM meter_type");
         $stmt->execute();
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
@@ -266,6 +277,211 @@ class DbServices {
         } else {
             echo json_encode(["state" => "f", "message" => "Carton introuvable."]);
         }
+    }
+
+    // ========================================================================
+    // GESTION DES PALETTES (PACKING PALETTE)
+    // ========================================================================
+
+    private static function getOrCreatePalette($conn, $id_meter_type, $qtyLimitPalette, $typeName) {
+        // Chercher une palette ouverte contenant au moins un carton du même type, ET avec de l'espace
+        $queryPalette = "SELECT p.id, p.palette_number 
+                         FROM palette p 
+                         WHERE p.status = 'open' 
+                         AND (
+                            (SELECT COUNT(*) FROM box b WHERE b.id_palette = p.id) = 0 
+                            OR 
+                            (SELECT m.id_meter_type FROM meter m JOIN box b ON m.id_box = b.id WHERE b.id_palette = p.id LIMIT 1) = :id_type
+                         ) 
+                         AND (SELECT COUNT(*) FROM box b WHERE b.id_palette = p.id) < :qtyLimit
+                         ORDER BY p.id ASC LIMIT 1";
+        
+        $stmtPal = $conn->prepare($queryPalette);
+        $stmtPal->execute([':id_type' => $id_meter_type, ':qtyLimit' => $qtyLimitPalette]);
+
+        if ($stmtPal->rowCount() > 0) {
+            $palette = $stmtPal->fetch(PDO::FETCH_ASSOC);
+            return ["id" => $palette['id'], "palette_number" => $palette['palette_number']];
+        } else {
+            $prefix = "PL-" . $typeName . "-";
+            $stmtLastPal = $conn->prepare("SELECT palette_number FROM palette WHERE palette_number LIKE :prefix ORDER BY id DESC LIMIT 1");
+            $stmtLastPal->execute([':prefix' => $prefix . '%']);
+            
+            if ($stmtLastPal->rowCount() > 0) {
+                $lastPal = $stmtLastPal->fetch(PDO::FETCH_ASSOC)['palette_number'];
+                $parts = explode('-', $lastPal);
+                $lastNum = intval(end($parts));
+                $nextNum = str_pad($lastNum + 1, 2, '0', STR_PAD_LEFT);
+            } else {
+                $nextNum = "01";
+            }
+            
+            $palette_number = $prefix . $nextNum;
+            $stmtNewPal = $conn->prepare("INSERT INTO palette (palette_number, status) VALUES (:pal_num, 'open')");
+            $stmtNewPal->execute([':pal_num' => $palette_number]);
+            return ["id" => $conn->lastInsertId(), "palette_number" => $palette_number];
+        }
+    }
+
+    static function packBox($box_number, $id_meter_type) {
+        $conn = Database::getConnection();
+
+        // 1. Vérifier si le carton existe et récupérer ses infos
+        $stmtBox = $conn->prepare("SELECT id, status, id_palette FROM box WHERE box_number = :box_num");
+        $stmtBox->execute([':box_num' => $box_number]);
+
+        if ($stmtBox->rowCount() == 0) {
+            echo json_encode(["state" => "f", "message" => "Carton introuvable dans la base de données."]);
+            exit;
+        }
+
+        $boxInfo = $stmtBox->fetch(PDO::FETCH_ASSOC);
+        $id_box = $boxInfo['id'];
+
+        // 2. Vérifier que le carton est bien "fermé" (complet avec ses compteurs)
+        if ($boxInfo['status'] !== 'closed') {
+            echo json_encode(["state" => "f", "message" => "Ce carton n'est pas encore fermé/complet. Impossible de le palettiser."]);
+            exit;
+        }
+
+        // 3. Vérifier le type de compteur contenu dans ce carton
+        $stmtTypeCheck = $conn->prepare("SELECT id_meter_type FROM meter WHERE id_box = :id_box LIMIT 1");
+        $stmtTypeCheck->execute([':id_box' => $id_box]);
+        $boxTypeInfo = $stmtTypeCheck->fetch(PDO::FETCH_ASSOC);
+
+        if (!$boxTypeInfo || $boxTypeInfo['id_meter_type'] != $id_meter_type) {
+            echo json_encode(["state" => "f", "message" => "Erreur : Ce carton ne contient pas le modèle sélectionné pour cette palette."]);
+            exit;
+        }
+
+        // 4. Vérifier si le carton est déjà dans une palette
+        if (!empty($boxInfo['id_palette'])) {
+            $stmtPalCheck = $conn->prepare("SELECT status FROM palette WHERE id = :id_pal");
+            $stmtPalCheck->execute([':id_pal' => $boxInfo['id_palette']]);
+            $palStatus = $stmtPalCheck->fetch(PDO::FETCH_ASSOC)['status'];
+
+            echo json_encode([
+                "state" => "already_packed",
+                "message" => "Ce carton est déjà assigné à une palette !",
+                "id_palette" => $boxInfo['id_palette'],
+                "palette_status" => $palStatus
+            ]);
+            exit;
+        }
+
+        // 5. Récupérer les limites de la palette pour ce modèle
+        $stmtType = $conn->prepare("SELECT meter_type, qty_box_palette FROM meter_type WHERE id = :id");
+        $stmtType->execute([':id' => $id_meter_type]);
+        $typeData = $stmtType->fetch(PDO::FETCH_ASSOC);
+        $qtyLimitPalette = $typeData['qty_box_palette'];
+        $typeName = $typeData['meter_type'];
+
+        // 6. Affecter à une palette existante ou nouvelle
+        $palData = self::getOrCreatePalette($conn, $id_meter_type, $qtyLimitPalette, $typeName);
+        $id_palette = $palData['id'];
+        $palette_number = $palData['palette_number'];
+
+        // Mise à jour du carton
+        $stmtUpdateBox = $conn->prepare("UPDATE box SET id_palette = :id_pal, update_date = CURRENT_TIMESTAMP WHERE id = :id_box");
+        $stmtUpdateBox->execute([':id_pal' => $id_palette, ':id_box' => $id_box]);
+
+        // 7. Vérifier si la palette est pleine après cet ajout
+        $stmtAllBoxes = $conn->prepare("SELECT id, box_number, update_date FROM box WHERE id_palette = :id_pal ORDER BY id DESC");
+        $stmtAllBoxes->execute([':id_pal' => $id_palette]);
+        $allBoxes = $stmtAllBoxes->fetchAll(PDO::FETCH_ASSOC);
+        $currentQty = count($allBoxes);
+
+        $message = "success";
+
+        if ($currentQty >= $qtyLimitPalette) {
+            $stmtClose = $conn->prepare("UPDATE palette SET status = 'closed', update_date = CURRENT_TIMESTAMP WHERE id = :id_pal");
+            $stmtClose->execute([':id_pal' => $id_palette]);
+            $message = "palette-full";
+        }
+
+        echo json_encode([
+            "state" => "s",
+            "message" => $message,
+            "palette_number" => $palette_number,
+            "id_palette" => $id_palette,
+            "packed_palette_qte" => "$currentQty/$qtyLimitPalette",
+            "meter_type_name" => $typeName,
+            "all_boxes" => $allBoxes
+        ]);
+    }
+
+    static function reopenPalette($id_palette) {
+        $conn = Database::getConnection();
+        
+        // Obtenir les infos de la palette
+        $stmtPal = $conn->prepare("SELECT p.palette_number, t.meter_type, t.qty_box_palette 
+                                   FROM palette p
+                                   JOIN box b ON b.id_palette = p.id
+                                   JOIN meter m ON m.id_box = b.id
+                                   JOIN meter_type t ON m.id_meter_type = t.id
+                                   WHERE p.id = :id_palette LIMIT 1");
+        $stmtPal->execute([':id_palette' => $id_palette]);
+
+        if ($stmtPal->rowCount() > 0) {
+            $palInfo = $stmtPal->fetch(PDO::FETCH_ASSOC);
+            $typeName = $palInfo['meter_type'];
+            $qtyLimit = $palInfo['qty_box_palette'];
+            $palette_number = $palInfo['palette_number'];
+
+            $stmtAllBoxes = $conn->prepare("SELECT id, box_number, update_date FROM box WHERE id_palette = :id_palette ORDER BY id DESC");
+            $stmtAllBoxes->execute([':id_palette' => $id_palette]);
+            $allBoxes = $stmtAllBoxes->fetchAll(PDO::FETCH_ASSOC);
+            $currentQty = count($allBoxes);
+
+            echo json_encode([
+                "state" => "s",
+                "palette_number" => $palette_number,
+                "id_palette" => $id_palette,
+                "packed_palette_qte" => "$currentQty/$qtyLimit",
+                "meter_type_name" => $typeName,
+                "all_boxes" => $allBoxes
+            ]);
+        } else {
+            echo json_encode(["state" => "f", "message" => "Palette introuvable ou vide."]);
+        }
+    }
+
+    static function getPalettePrintData($id_palette) {
+        $conn = Database::getConnection();
+
+        // Obtenir info globale
+        $stmtPal = $conn->prepare("SELECT p.palette_number, t.meter_type 
+                                   FROM palette p
+                                   JOIN box b ON b.id_palette = p.id
+                                   JOIN meter m ON m.id_box = b.id
+                                   JOIN meter_type t ON m.id_meter_type = t.id
+                                   WHERE p.id = :id_palette LIMIT 1");
+        $stmtPal->execute([':id_palette' => $id_palette]);
+        $info = $stmtPal->fetch(PDO::FETCH_ASSOC);
+
+        // Obtenir la liste des cartons et des compteurs
+        $stmtBoxes = $conn->prepare("SELECT id, box_number FROM box WHERE id_palette = :id_palette ORDER BY box_number ASC");
+        $stmtBoxes->execute([':id_palette' => $id_palette]);
+        $boxesResult = $stmtBoxes->fetchAll(PDO::FETCH_ASSOC);
+
+        $printBoxes = [];
+        foreach ($boxesResult as $box) {
+            $stmtMeters = $conn->prepare("SELECT barcode FROM meter WHERE id_box = :id_box ORDER BY barcode ASC");
+            $stmtMeters->execute([':id_box' => $box['id']]);
+            $meters = $stmtMeters->fetchAll(PDO::FETCH_COLUMN); // Récupère uniquement le tableau des code-barres
+
+            $printBoxes[] = [
+                "box_number" => $box['box_number'],
+                "meters" => $meters
+            ];
+        }
+
+        echo json_encode([
+            "state" => "s",
+            "palette_number" => $info['palette_number'],
+            "meter_type_name" => $info['meter_type'],
+            "boxes" => $printBoxes
+        ]);
     }
 }
 ?>
