@@ -10,7 +10,7 @@
 .saieg{
   position: absolute;
   top: 0.5%;
-  left: 20%;
+  left: 10%;
   /* font-size: 1.3em; */
   text-align: center;
 }
@@ -24,7 +24,7 @@
 .productName{
   position: absolute;
   top: 117%;
-  left: 20%;
+  left: 10%;
 font-size: 1.9em;
 }
 .calibre{
@@ -35,25 +35,25 @@ font-size: 2.2em;
 }
 .boxNumberPrint{
   position: absolute;
-  top: 150%;
-  left: 55%;
+  top: 160%;
+  left: 30%;
   font-size: 1.6em;
 }
 #qrcode{
     position: absolute;
-     top: 180%;
-  left: 65%;
+     top: 190%;
+  left: 35%;
 }
 .bareCodePrint{
   position: absolute;
-  top: 145%;
+  top: 160%;
   left: 2.6%;
   border-collapse: collapse;
 }
 .qte{
   position: absolute;
-  top: 240%;
-  left: 60%;
+  top: 260%;
+  left: 33%;
 }
 .date{
   position: absolute;
