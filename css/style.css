@@ -36,7 +36,7 @@ font-size: 2.2em;
 .boxNumberPrint{
   position: absolute;
   top: 160%;
-  left: 30%;
+  left: 25%;
   font-size: 1.6em;
 }
 #qrcode{
@@ -47,7 +47,7 @@ font-size: 2.2em;
 .bareCodePrint{
   position: absolute;
   top: 160%;
-  left: 2.6%;
+  left: 0%;
   border-collapse: collapse;
 }
 .qte{
