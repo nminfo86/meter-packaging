@@ -76,13 +76,13 @@ require_once (__DIR__ . "/php/DbServices.php");
                 </div>
             </div>
 
-            <table id="printTable" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 14px;">
+            <table id="printTable" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px;">
                 <thead>
                     <tr>
-                        <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 10%;">N°</th>
-                        <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 20%;">N° Carton</th>
-                        <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 15%;">Qté Compteurs</th>
-                        <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 55%;">Numéros de Série (Code Barre)</th>
+                        <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 5%;">N°</th>
+                        <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 10%;">N° Carton</th>
+                        <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 5%;">Qté Compteurs</th>
+                        <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 80%;">Numéros de Série</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -43,10 +43,15 @@ class DbServices {
     }
 
     // FONCTION PRIVÉE UTILITAIRE : Cherche un carton ouvert ou en crée un
-    private static function getOrCreateBox($conn, $id_meter_type, $qtyLimit, $typeName) {
-        // IMPORTANT : On vérifie que le carton "open" a physiquement de la place (< qtyLimit)
+    private static function getOrCreateBox($conn, $id_meter_type, $qtyLimit, $typeName, $barcode) {
+        // Extraction de l'année depuis le code-barres (3ème et 4ème caractère)
+        $production_year = substr($barcode, 2, 2);
+        $prefix = "BX-" . $typeName . "-" . $production_year . "-";
+
+        // IMPORTANT : On vérifie que le carton "open" appartient à la MÊME ANNÉE
         $queryBox = "SELECT b.id, b.box_number FROM box b 
                      WHERE b.status = 'open' 
+                     AND b.box_number LIKE :box_prefix
                      AND (
                         (SELECT COUNT(*) FROM meter m WHERE m.id_box = b.id) = 0 
                         OR 
@@ -56,13 +61,13 @@ class DbServices {
                      ORDER BY b.id ASC LIMIT 1";
         
         $stmtBox = $conn->prepare($queryBox);
-        $stmtBox->execute([':id_type' => $id_meter_type, ':qtyLimit' => $qtyLimit]);
+        $stmtBox->execute([':box_prefix' => $prefix . '%', ':id_type' => $id_meter_type, ':qtyLimit' => $qtyLimit]);
 
         if ($stmtBox->rowCount() > 0) {
             $box = $stmtBox->fetch(PDO::FETCH_ASSOC);
             return ["id" => $box['id'], "box_number" => $box['box_number']];
         } else {
-            $prefix = "BX-" . $typeName . "-";
+            // Chercher le dernier carton UNIQUEMENT pour cette année
             $stmtLastBox = $conn->prepare("SELECT box_number FROM box WHERE box_number LIKE :prefix ORDER BY id DESC LIMIT 1");
             $stmtLastBox->execute([':prefix' => $prefix . '%']);
             
@@ -70,9 +75,9 @@ class DbServices {
                 $lastBox = $stmtLastBox->fetch(PDO::FETCH_ASSOC)['box_number'];
                 $parts = explode('-', $lastBox);
                 $lastNum = intval(end($parts));
-                $nextNum = str_pad($lastNum + 1, 2, '0', STR_PAD_LEFT);
+                $nextNum = str_pad($lastNum + 1, 5, '0', STR_PAD_LEFT); // Sur 5 chiffres (ex: 00001)
             } else {
-                $nextNum = "01";
+                $nextNum = "00001"; // Réinitialisation à 00001 pour la nouvelle année
             }
             
             $box_number = $prefix . $nextNum;
@@ -133,21 +138,30 @@ class DbServices {
             
             if ($stmtLastGlobal->rowCount() > 0) {
                 $lastBarcode = $stmtLastGlobal->fetch(PDO::FETCH_ASSOC)['barcode'];
-                $expectedBarcode = str_pad(intval($lastBarcode) + 1, strlen($lastBarcode), '0', STR_PAD_LEFT);
                 
-                if ($barcode !== $expectedBarcode) {
-                    echo json_encode([
-                        "state" => "sequence_broken",
-                        "expected" => $expectedBarcode,
-                        "scanned" => $barcode,
-                        "message" => "Le dernier compteur était le $lastBarcode."
-                    ]);
-                    exit;
+                // NOUVEAU : On extrait les années pour comparer
+                $scannedYear = substr($barcode, 2, 2);
+                $lastBarcodeYear = substr($lastBarcode, 2, 2);
+
+                // On ne vérifie la séquence QUE si on est dans la même année de production
+                // (Cela évite l'erreur au passage au premier janvier)
+                if ($scannedYear === $lastBarcodeYear) {
+                    $expectedBarcode = str_pad(intval($lastBarcode) + 1, strlen($lastBarcode), '0', STR_PAD_LEFT);
+                    
+                    if ($barcode !== $expectedBarcode) {
+                        echo json_encode([
+                            "state" => "sequence_broken",
+                            "expected" => $expectedBarcode,
+                            "scanned" => $barcode,
+                            "message" => "Le dernier compteur était le $lastBarcode."
+                        ]);
+                        exit;
+                    }
                 }
             }
 
-            // Insertion du nouveau compteur
-            $boxData = self::getOrCreateBox($conn, $id_meter_type, $qtyLimit, $typeName);
+            // NOUVEAU : On passe $barcode à la fonction pour déduire l'année
+            $boxData = self::getOrCreateBox($conn, $id_meter_type, $qtyLimit, $typeName, $barcode);
             $id_box = $boxData['id'];
             $box_number = $boxData['box_number'];
 
@@ -215,11 +229,12 @@ class DbServices {
         $qtyLimit = $typeInfo['qty_box'];
         $typeName = $typeInfo['meter_type'];
 
-        // On obtient un carton (cela réserve physiquement l'emplacement pour le compteur manquant)
-        $boxData = self::getOrCreateBox($conn, $id_meter_type, $qtyLimit, $typeName);
+        // On passe $barcode
+        $boxData = self::getOrCreateBox($conn, $id_meter_type, $qtyLimit, $typeName, $barcode);
         $id_box = $boxData['id'];
 
         $stmtInsert = $conn->prepare("INSERT INTO meter (barcode, id_meter_type, id_box, status) VALUES (:barcode, :id_type, :id_box, 'wait')");
+// ... suite inchangée
         if ($stmtInsert->execute([':barcode' => $barcode, ':id_type' => $id_meter_type, ':id_box' => $id_box])) {
             echo json_encode(["state" => "s"]);
         } else {
@@ -283,11 +298,18 @@ class DbServices {
     // GESTION DES PALETTES (PACKING PALETTE)
     // ========================================================================
 
-    private static function getOrCreatePalette($conn, $id_meter_type, $qtyLimitPalette, $typeName) {
-        // Chercher une palette ouverte contenant au moins un carton du même type, ET avec de l'espace
+    private static function getOrCreatePalette($conn, $id_meter_type, $qtyLimitPalette, $typeName, $box_number) {
+        // Extraction de l'année depuis le numéro du carton (ex: BX-SGM12-DL-26-00001)
+        $parts = explode('-', $box_number);
+        $production_year = $parts[count($parts) - 2]; // L'avant-dernière partie est toujours l'année
+        
+        $prefix = "PL-" . $typeName . "-" . $production_year . "-";
+
+        // Chercher une palette ouverte de la même année
         $queryPalette = "SELECT p.id, p.palette_number 
                          FROM palette p 
                          WHERE p.status = 'open' 
+                         AND p.palette_number LIKE :pal_prefix
                          AND (
                             (SELECT COUNT(*) FROM box b WHERE b.id_palette = p.id) = 0 
                             OR 
@@ -297,23 +319,22 @@ class DbServices {
                          ORDER BY p.id ASC LIMIT 1";
         
         $stmtPal = $conn->prepare($queryPalette);
-        $stmtPal->execute([':id_type' => $id_meter_type, ':qtyLimit' => $qtyLimitPalette]);
+        $stmtPal->execute([':pal_prefix' => $prefix . '%', ':id_type' => $id_meter_type, ':qtyLimit' => $qtyLimitPalette]);
 
         if ($stmtPal->rowCount() > 0) {
             $palette = $stmtPal->fetch(PDO::FETCH_ASSOC);
             return ["id" => $palette['id'], "palette_number" => $palette['palette_number']];
         } else {
-            $prefix = "PL-" . $typeName . "-";
             $stmtLastPal = $conn->prepare("SELECT palette_number FROM palette WHERE palette_number LIKE :prefix ORDER BY id DESC LIMIT 1");
             $stmtLastPal->execute([':prefix' => $prefix . '%']);
             
             if ($stmtLastPal->rowCount() > 0) {
                 $lastPal = $stmtLastPal->fetch(PDO::FETCH_ASSOC)['palette_number'];
-                $parts = explode('-', $lastPal);
-                $lastNum = intval(end($parts));
-                $nextNum = str_pad($lastNum + 1, 2, '0', STR_PAD_LEFT);
+                $partsPal = explode('-', $lastPal);
+                $lastNum = intval(end($partsPal));
+                $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT); // Sur 4 chiffres
             } else {
-                $nextNum = "01";
+                $nextNum = "0001"; // Réinitialisation de la palette à 0001
             }
             
             $palette_number = $prefix . $nextNum;
@@ -377,7 +398,8 @@ class DbServices {
         $typeName = $typeData['meter_type'];
 
         // 6. Affecter à une palette existante ou nouvelle
-        $palData = self::getOrCreatePalette($conn, $id_meter_type, $qtyLimitPalette, $typeName);
+        // NOUVEAU : On passe $box_number pour extraire l'année
+        $palData = self::getOrCreatePalette($conn, $id_meter_type, $qtyLimitPalette, $typeName, $box_number);
         $id_palette = $palData['id'];
         $palette_number = $palData['palette_number'];
 

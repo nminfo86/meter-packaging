@@ -281,7 +281,7 @@ $(document).ready(function () {
 
         $("#printDiv .productName").text("COMPTEUR : " + meterTypeName.toUpperCase());
         $("#printDiv .boxNumberPrint").text(boxNumber);
-        $("#printDiv .qte").text("QTY : " + qte + " PCS");
+        $("#printDiv .qte").text("QTE : " + qte + " PCS");
         $("#printDiv .date").text(getDateTime());
 
         // 1. Ajouter le Contrat et la Nomenclature
@@ -316,7 +316,7 @@ $(document).ready(function () {
                 fontSize: 17,
                 fontOptions: "bold",
                 height: 50,
-                width: 1.9,
+                width: 2.2,
                 margin: 0
             });
 
@@ -326,7 +326,7 @@ $(document).ready(function () {
                 fontSize: 17,
                 fontOptions: "bold",
                 height: 50,
-                width: 1.9,
+                width: 2.2,
                 margin: 0
             });
         }
