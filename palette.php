@@ -72,8 +72,14 @@ require_once (__DIR__ . "/php/DbServices.php");
                 <div style="text-align: right;">
                     <p class="printContrat" style="margin-bottom: 5px;"></p>
                     <p class="printNomenclature" style="margin-bottom: 5px;"></p>
-                    <p class="printDate" style="margin-bottom: 5px;"></p>
+                    <!-- <p class="printDate" style="margin-bottom: 5px;"></p> -->
                 </div>
+            </div>
+            <div style="margin-top: 30px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+            <!-- <div style="margin-top: 30px; display: flex; font-weight: bold; font-size: 16px;"> -->
+                <p>TOTAL CARTONS : <span class="printTotalBoxes text-primary"></span></p>
+                <p>TOTAL COMPTEURS : <span class="printTotalMeters text-primary"></span></p>
+                <p class="printDate" style="margin-bottom: 5px;"></p>
             </div>
 
             <table id="printTable" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px;">

@@ -472,7 +472,7 @@ class DbServices {
         $conn = Database::getConnection();
 
         // Obtenir info globale
-        $stmtPal = $conn->prepare("SELECT p.palette_number, t.meter_type 
+        $stmtPal = $conn->prepare("SELECT p.palette_number, t.meter_type, p.update_date  
                                    FROM palette p
                                    JOIN box b ON b.id_palette = p.id
                                    JOIN meter m ON m.id_box = b.id
@@ -502,6 +502,7 @@ class DbServices {
             "state" => "s",
             "palette_number" => $info['palette_number'],
             "meter_type_name" => $info['meter_type'],
+            "update_date" => $info['update_date'],
             "boxes" => $printBoxes
         ]);
     }
