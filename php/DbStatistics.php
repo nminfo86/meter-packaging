@@ -45,7 +45,7 @@ class DbStatistics {
         if ($stmt->rowCount() > 0) {
             echo json_encode(["state" => "s", "item_type" => "meter", "data" => $stmt->fetch(PDO::FETCH_ASSOC)]);
         } else {
-            echo json_encode(["state" => "f", "message" => "Compteur introuvable dans la base de données."]);
+            echo json_encode(["state" => "f", "message" => "Enregistrement introuvable."]);
         }
     }
 
@@ -64,7 +64,7 @@ class DbStatistics {
         $stmtBox->execute([':box_number' => $box_number]);
         
         if ($stmtBox->rowCount() == 0) {
-            echo json_encode(["state" => "f", "message" => "Carton introuvable."]);
+            echo json_encode(["state" => "f", "message" => "Enregistrement introuvable."]);
             return;
         }
         $boxInfo = $stmtBox->fetch(PDO::FETCH_ASSOC);
@@ -95,7 +95,7 @@ class DbStatistics {
         $stmtPal->execute([':palette_number' => $palette_number]);
         
         if ($stmtPal->rowCount() == 0) {
-            echo json_encode(["state" => "f", "message" => "Palette introuvable."]);
+            echo json_encode(["state" => "f", "message" => "Enregistrement introuvable."]);
             return;
         }
         $palInfo = $stmtPal->fetch(PDO::FETCH_ASSOC);
