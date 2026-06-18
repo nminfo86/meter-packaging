@@ -9,30 +9,10 @@ require_once (__DIR__ . "/php/DbServices.php");
     <?php include "includes/header.php"; ?>
     <section class="container mt-4">
 
-                <div class="welcome-user text-center mb-4">
+        <div class="welcome-user text-center mb-4">
             <h2 class="font-weight-bold flat-title">
-                <i class="fas fa-chart-bar"></i> Statistiques et Suivi
+                <i class="fas fa-chart-bar"></i> Statistiques d'Emballage
             </h2>
-        </div>
-
-        <div class="card mb-4 flat-card">
-            <div class="card-header flat-card-header font-weight-bold">
-                <i class="fas fa-search"></i> Traçabilité (Scanner Compteur, Carton ou Palette)
-            </div>
-            <div class="card-body">
-                <div class="row justify-content-center">
-                    <div class="col-md-8">
-                        <div class="input-group input-group-lg mb-3">
-                            <input type="text" id="trackBarcode" class="form-control text-center flat-input" placeholder="Scanner Code-barres, Carton (BX-) ou Palette (PL-)">
-                            <div class="input-group-append">
-                                <button class="btn btn-primary flat-btn font-weight-bold" type="button" id="btnTrack">Chercher</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="trackResult" class="alert d-none mt-2 text-center" role="alert"></div>
-            </div>
         </div>
 
         <div class="card mb-5 flat-card">

@@ -6,6 +6,7 @@
         <a class="navbar-brand"><img src="images/misc/SaiegLogo.png" alt="Saieg Logo" style="height:40px; margin-right:8px; vertical-align:middle;"></a>
         <a class="navbar-brand" href="index.php">METER</a>
         <a class="navbar-brand" href="palette.php">BOX</a>
+        <a class="navbar-brand" href="traca.php">TRAÇABILITÉ</a>
         <a class="navbar-brand" href="statistics.php">STATISTICS</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent-333"
                 aria-controls="navbarSupportedContent-333" aria-expanded="false" aria-label="Toggle navigation">
