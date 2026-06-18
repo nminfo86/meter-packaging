@@ -1,4 +1,15 @@
 [
+    {
+    "version": "1.2.1",
+    "date": "2026-06-18",
+    "label": "Database Optimization",
+    "changes": [
+      "Added necessary indexes to improve query performance",
+      "Optimized statistics queries for faster data retrieval"
+
+    ],
+    "db_migrations": []
+  },
   {
     "version": "1.1.2",
     "date": "2026-06-18",
@@ -21,9 +32,7 @@
     ],
     "db_migrations": [
       {
-        "description": "Initial database schema creation",
-        "tables": ["box", "palette", "traca"],
-        "script": "database/meter-packaging.sql"
+        "script": "001_initial_schema.sql"
       }
     ]
   }

@@ -51,6 +51,12 @@ require_once (__DIR__ . "/php/DbServices.php");
                 </form>
 
                 <h4 id="totalMetersText" class="text-center text-primary font-weight-bold mb-3"></h4>
+
+                <div id="statsLoader" class="text-center py-5" style="display:none;">
+                    <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;">
+                        <span class="sr-only">Chargement...</span>
+                    </div>
+                </div>
                 
                 <div class="flat-canvas-container">
                     <canvas id="statsChart"></canvas>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : lun. 15 juin 2026 à 13:14
+-- Généré le : jeu. 18 juin 2026 à 13:05
 -- Version du serveur : 8.0.31
 -- Version de PHP : 8.1.13
 
@@ -36,8 +36,9 @@ CREATE TABLE IF NOT EXISTS `box` (
   `create_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_box_number` (`box_number`),
   KEY `id_palette` (`id_palette`)
-) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -55,9 +56,11 @@ CREATE TABLE IF NOT EXISTS `meter` (
   `create_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_barcode` (`barcode`),
   KEY `id_meter_type` (`id_meter_type`),
-  KEY `id_box` (`id_box`)
-) ENGINE=InnoDB AUTO_INCREMENT=95 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  KEY `id_box` (`id_box`),
+  KEY `idx_create_date` (`create_date`)
+) ENGINE=InnoDB AUTO_INCREMENT=177 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -83,8 +86,8 @@ CREATE TABLE IF NOT EXISTS `meter_type` (
 --
 
 INSERT INTO `meter_type` (`id`, `meter_type`, `model_code`, `qty_box`, `qty_box_palette`, `homologation`, `contrat`, `nomenclature`) VALUES
-(1, 'SGM12-DL', 1, 5, 6, 'Homologation ONML N° 125/ONML/2026', 'Contrat N° 01/SAIEG-SD/2026', 'NN4060222'),
-(2, 'SGT34-K', 2, 4, 4, 'Homologation ONML N° 125/ONML/2026', 'Contrat N° 01/SAIEG-SD/2026', '');
+(1, 'SGM12-DL', 1, 3, 2, 'N° 125/ONML/2026', 'N° 01/SAIEG-SD/2026', 'NN4060011'),
+(2, 'SGT34-K', 2, 3, 2, 'N° 125/ONML/2026', 'N° 01/SAIEG-SD/2026', '');
 
 -- --------------------------------------------------------
 
@@ -99,8 +102,9 @@ CREATE TABLE IF NOT EXISTS `palette` (
   `status` varchar(10) NOT NULL,
   `create_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_palette_number` (`palette_number`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Contraintes pour les tables déchargées

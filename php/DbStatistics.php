@@ -147,21 +147,26 @@ class DbStatistics {
             $sql .= " AND m.id_meter_type = :id_type ";
             $execParams[':id_type'] = $id_meter_type;
         }
+        // OPTIMIZED DATE FILTERING
         if ($start_date) {
-            $sql .= " AND DATE(m.create_date) >= :start_date ";
-            $execParams[':start_date'] = $start_date;
+            $sql .= " AND m.create_date >= :start_date ";
+            $execParams[':start_date'] = $start_date . " 00:00:00";
         }
         if ($end_date) {
-            $sql .= " AND DATE(m.create_date) <= :end_date ";
-            $execParams[':end_date'] = $end_date;
+            $sql .= " AND m.create_date <= :end_date ";
+            $execParams[':end_date'] = $end_date . " 23:59:59";
         }
+        
+        // OPTIMIZED HOUR FILTERING (Using TIME formatting)
+        // Note: Filtering just by hour across multiple days is naturally slow. 
+        // If it's for a specific shift, it's usually combined with a date.
         if ($start_hour !== null) {
-            $sql .= " AND HOUR(m.create_date) >= :start_hour ";
-            $execParams[':start_hour'] = $start_hour;
+            $sql .= " AND TIME(m.create_date) >= :start_hour ";
+            $execParams[':start_hour'] = str_pad($start_hour, 2, '0', STR_PAD_LEFT) . ":00:00";
         }
         if ($end_hour !== null) {
-            $sql .= " AND HOUR(m.create_date) <= :end_hour ";
-            $execParams[':end_hour'] = $end_hour;
+            $sql .= " AND TIME(m.create_date) <= :end_hour ";
+            $execParams[':end_hour'] = str_pad($end_hour, 2, '0', STR_PAD_LEFT) . ":59:59";
         }
 
         // Construction du Group By
