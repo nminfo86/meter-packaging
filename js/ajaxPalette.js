@@ -194,7 +194,7 @@ $(document).ready(function () {
                     $(".printMeterName").text("Modèle : " + data.meter_type_name);
                     $(".printContrat").text("N° Contrat : " + contrat);
                     $(".printNomenclature").text("N° Nomenclature : " + nomenclature);
-                    $(".printDate").text("Date : " + getDateTime().split(' ')[0]);
+                    $(".printDate").text("Date : " + data.update_date.split(" ")[0])
 
                     let printTableBody = $("#printTable tbody");
                     printTableBody.empty();
