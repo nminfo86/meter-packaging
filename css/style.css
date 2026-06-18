@@ -73,3 +73,51 @@ footer {
     color: #999;
     text-align: center;
 }
+
+/* --- Flat Design pour Statistiques --- */
+#Statistics .flat-title {
+    color: #0056b3;
+    border-bottom: 2px solid #0056b3;
+    display: inline-block;
+    padding-bottom: 5px;
+    margin-bottom: 20px;
+}
+
+#Statistics .flat-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 0; /* Pas de coins arrondis pour le flat design */
+    box-shadow: none !important; /* Retrait des ombres */
+}
+
+#Statistics .flat-card-header {
+    background-color: #2c3e50 !important;
+    color: #ffffff;
+    border-radius: 0;
+    border-bottom: none;
+}
+
+#Statistics .flat-input {
+    border: 2px solid #2c3e50;
+    border-radius: 0;
+    font-weight: bold;
+}
+
+#Statistics .flat-select, 
+#Statistics .flat-date, 
+#Statistics .flat-number {
+    border: 1px solid #3498db;
+    border-radius: 0;
+}
+
+#Statistics .flat-btn {
+    border-radius: 0;
+}
+
+#Statistics .flat-canvas-container {
+    position: relative;
+    height: 45vh;
+    width: 100%;
+    background: #ffffff;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+}

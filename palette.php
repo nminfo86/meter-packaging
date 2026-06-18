@@ -1,6 +1,6 @@
 <?php
-require_once (__DIR__ . "/php/functions.php");
-require_once (__DIR__ . "/php/DbServices.php");
+require_once(__DIR__ . "/php/functions.php");
+require_once(__DIR__ . "/php/DbServices.php");
 ?>
 <html>
 <?php include "includes/head.php"; ?>
@@ -11,12 +11,12 @@ require_once (__DIR__ . "/php/DbServices.php");
 
         <div class="welcome-user text-center">
             <div class="row justify-content-center mb-3">
-                <div class="col-md-8 d-flex justify-content-center align-items-center">
+                <div class="col-md-10 d-flex justify-content-center align-items-center">
                     <select id="meterTypeSelect" class="form-control form-control-lg text-center w-75" style="border: 2px solid #007bff; font-weight: bold;">
                         <option value="" disabled selected>-- PALETTE - Sélectionnez le Type --</option>
                     </select>
                     <button id="manualPrintBtn" class="btn btn-success btn-lg ml-3 d-none" title="Imprimer la liste de colisage">
-                        <i class="fas fa-print"></i> Liste de Colisage
+                        <i class="fas fa-print"></i> Liste Colisage
                     </button>
                 </div>
             </div>
@@ -24,7 +24,7 @@ require_once (__DIR__ . "/php/DbServices.php");
             <div id="inputDiv" class="mb-3">
                 <input id="currentPaletteId" type="hidden" value="">
             </div>
-            
+
             <div class="alert alert-danger d-none mt-3 text-center col-8 m-auto" role="alert" id="qrAlert" style="font-weight: 500; font-size: 20px;">
                 <span id="alertMessage"></span>
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -36,7 +36,7 @@ require_once (__DIR__ . "/php/DbServices.php");
         <div id="generalInfo" class="mb-3 mt-4 card p-3 bg-light d-none">
             <div class="row text-center">
                 <h5 class="col-4">Modèle : <span class="meterTypeName text-primary font-weight-bold"></span></h5>
-                <h5 class="col-4">N° Palette : <span class="paletteNumber text-primary font-weight-bold"></span></h5> 
+                <h5 class="col-4">N° Palette : <span class="paletteNumber text-primary font-weight-bold"></span></h5>
                 <h5 class="col-4">Progression : <span class="packedQtePalette text-success font-weight-bold">0/0</span></h5>
             </div>
         </div>
@@ -57,9 +57,10 @@ require_once (__DIR__ . "/php/DbServices.php");
         </div>
 
         <div id="printDiv" class="d-none" style="padding: 20px; font-family: Arial, sans-serif; background: #fff;">
-            
+
             <div style="text-align: center; margin-bottom: 20px;">
-                <h4 style="font-weight: bold; font-size: 18px; margin-bottom: 5px;">SOCIETE ALGERIENNE DES INDUSTRIES<br>ELECTRIQUES ET GAZIERES</h4>
+                <h4 style="font-weight: bold; font-size: 18px; margin-bottom: 5px;">SOCIETE ALGERIENNE DES INDUSTRIES ELECTRIQUES ET GAZIERES</h4>
+                 <h5 style="font-weight: bold; font-size: 18px; margin-bottom: 5px;">UFMEEG - SITE EL EULMA</h5>
                 <img src="images/misc/SaiegLogo.png" style="max-height: 60px; margin-bottom: 10px;">
                 <h2 style="font-weight: bold; border-bottom: 2px solid #000; display: inline-block; padding-bottom: 5px;">LISTE DE COLISAGE (PACKING LIST)</h2>
             </div>
@@ -76,7 +77,7 @@ require_once (__DIR__ . "/php/DbServices.php");
                 </div>
             </div>
             <div style="margin-top: 30px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
-            <!-- <div style="margin-top: 30px; display: flex; font-weight: bold; font-size: 16px;"> -->
+                <!-- <div style="margin-top: 30px; display: flex; font-weight: bold; font-size: 16px;"> -->
                 <p>TOTAL CARTONS : <span class="printTotalBoxes text-primary"></span></p>
                 <p>TOTAL COMPTEURS : <span class="printTotalMeters text-primary"></span></p>
                 <p class="printDate" style="margin-bottom: 5px;"></p>
@@ -94,11 +95,10 @@ require_once (__DIR__ . "/php/DbServices.php");
                 <tbody>
                 </tbody>
             </table>
-            
-            <div style="margin-top: 30px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+
+            <div style="margin-top: 30px; display: flex; justify-content: center; gap: 50px; font-weight: bold; font-size: 16px;">
                 <p>TOTAL CARTONS : <span class="printTotalBoxes text-primary"></span></p>
                 <p>TOTAL COMPTEURS : <span class="printTotalMeters text-primary"></span></p>
-                <p>Signature Chef d'Équipe : ................................</p>
             </div>
         </div>
 
@@ -108,4 +108,5 @@ require_once (__DIR__ . "/php/DbServices.php");
     <?php include "includes/leg.php"; ?>
     <script src="js/ajaxPalette.js?v=<?= filemtime('js/ajaxPalette.js') ?>"></script>
 </body>
+
 </html>

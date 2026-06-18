@@ -114,6 +114,7 @@ class DbStatistics {
         echo json_encode(["state" => "s", "item_type" => "palette", "info" => $palInfo, "contents" => $boxes]);
     }
 
+
     // 4. Récupérer les statistiques globales
     static function getStatistics($params) {
         $conn = Database::getConnection();
@@ -125,10 +126,21 @@ class DbStatistics {
         $start_hour = (isset($params['start_hour']) && $params['start_hour'] !== '') ? intval($params['start_hour']) : null;
         $end_hour = (isset($params['end_hour']) && $params['end_hour'] !== '') ? intval($params['end_hour']) : null;
 
-        $sql = "SELECT DATE(m.create_date) as pack_date, HOUR(m.create_date) as pack_hour, t.meter_type, COUNT(m.id) as total_meters
-                FROM meter m
-                JOIN meter_type t ON m.id_meter_type = t.id
-                WHERE 1=1 ";
+        // Déterminer si on regroupe par heure ou par jour
+        $isOneDayContext = ($start_date && $end_date && $start_date === $end_date) || (!$start_date && !$end_date);
+        $groupByHour = true;
+        
+        if ($start_hour === null && $end_hour === null && !$isOneDayContext) {
+            $groupByHour = false;
+        }
+
+        // Construction du Select
+        $sql = "SELECT DATE(m.create_date) as pack_date, t.meter_type, COUNT(m.id) as total_meters";
+        if ($groupByHour) {
+            $sql .= ", HOUR(m.create_date) as pack_hour ";
+        }
+        $sql .= " FROM meter m JOIN meter_type t ON m.id_meter_type = t.id WHERE 1=1 ";
+        
         $execParams = [];
 
         if ($id_meter_type) {
@@ -152,7 +164,12 @@ class DbStatistics {
             $execParams[':end_hour'] = $end_hour;
         }
 
-        $sql .= " GROUP BY pack_date, pack_hour, t.meter_type ORDER BY pack_date ASC, pack_hour ASC";
+        // Construction du Group By
+        if ($groupByHour) {
+            $sql .= " GROUP BY pack_date, pack_hour, t.meter_type ORDER BY pack_date ASC, pack_hour ASC";
+        } else {
+            $sql .= " GROUP BY pack_date, t.meter_type ORDER BY pack_date ASC";
+        }
 
         $stmt = $conn->prepare($sql);
         $stmt->execute($execParams);
