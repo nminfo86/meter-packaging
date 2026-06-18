@@ -92,6 +92,17 @@ $(document).ready(function () {
                         showAlertFailed(data.message);
                     }
                 }
+                // --- NOUVEAU : Gestion de l'erreur de séquence ---
+                else if (data.state === "sequence_broken") {
+                    swal({
+                        title: "Mauvais Carton Scanné !",
+                        text: data.message + "\n\nLe système attend le carton : \n" + data.expected + "\n\nVous avez scanné : \n" + data.scanned,
+                        icon: "error",
+                        button: "J'ai compris",
+                        dangerMode: true,
+                    });
+                }
+                // -------------------------------------------------
                 else if (data.state === "f") {
                     showAlertFailed(data.message);
                 }
