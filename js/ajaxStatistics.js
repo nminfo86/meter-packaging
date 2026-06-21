@@ -86,7 +86,43 @@ function renderChart(data) {
         totalMeters += parseInt(row.total_meters);
     });
 
-    $("#totalMetersText").text(`Total des compteurs emballés : ${totalMeters}`);
+    // --- NOUVEAU : CALCUL DE LA CADENCE ---
+    let cadence = 0;
+    let sDate = $('#startDate').val();
+    let eDate = $('#endDate').val();
+    let sHour = $('#startHour').val();
+    let eHour = $('#endHour').val();
+    let shiftHours = 0;
+
+    // Si l'utilisateur a défini une plage horaire spécifique (Ex: Equipe de nuit 21h à 05h)
+    if(sDate && eDate && sHour !== "" && eHour !== "") {
+        let startStr = sDate + 'T' + sHour.padStart(2, '0') + ':00:00';
+        let endStr = eDate + 'T' + eHour.padStart(2, '0') + ':59:59';
+        
+        let diffMs = new Date(endStr) - new Date(startStr);
+        // On convertit les millisecondes en heures (arrondi à l'heure supérieure)
+        shiftHours = Math.ceil(diffMs / (1000 * 60 * 60)); 
+    } 
+    // Sinon (ex: filtre sur plusieurs jours sans heure précise), on se base sur les heures productives trouvées
+    else {
+        shiftHours = labels.length; 
+    }
+
+    // Protection contre la division par zéro
+    if (shiftHours > 0) {
+        cadence = Math.round(totalMeters / shiftHours);
+    } else {
+        cadence = totalMeters;
+    }
+
+    // Mise à jour de l'affichage avec le Total et la Cadence (Utilisation de .html() pour intégrer des balises)
+    $("#totalMetersText").html(`
+        Total des compteurs emballés : ${totalMeters} 
+        <br> 
+        <span class="badge badge-info mt-2" style="font-size: 0.85em; padding: 8px;">
+            <i class="fas fa-tachometer-alt"></i> Cadence moyenne : ${cadence} compteurs/heure
+        </span>
+    `);
 
     // Créer les points de données (en accumulant s'il y a plusieurs types de compteurs)
     let dataPoints = labels.map(label => {
