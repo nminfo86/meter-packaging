@@ -1,0 +1,39 @@
+[
+    {
+    "version": "1.2.1",
+    "date": "2026-06-18",
+    "label": "Database Optimization",
+    "changes": [
+      "Added necessary indexes to improve query performance",
+      "Optimized statistics queries for faster data retrieval"
+
+    ],
+    "db_migrations": []
+  },
+  {
+    "version": "1.1.2",
+    "date": "2026-06-18",
+    "label": "Statistics Feature",
+    "changes": [
+      "Added statistics page with charts",
+      "Export and print support for statistics",
+      "Chart.js integration for data visualization"
+    ],
+    "db_migrations": []
+  },
+  {
+    "version": "1.0.2",
+    "date": "2026-06-15",
+    "label": "Initial Release",
+    "changes": [
+      "Initial application setup: packaging meters management",
+      "Box, palette, and traceability management",
+      "Statistics dashboard"
+    ],
+    "db_migrations": [
+      {
+        "script": "001_initial_schema.sql"
+      }
+    ]
+  }
+]

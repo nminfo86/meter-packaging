@@ -397,6 +397,60 @@ class DbServices {
         $qtyLimitPalette = $typeData['qty_box_palette'];
         $typeName = $typeData['meter_type'];
 
+        // ====================================================================
+        // --- NOUVEAU : 5.5 VÉRIFICATION STRICTE DE LA SÉQUENCE DES CARTONS ---
+        // ====================================================================
+        $parts = explode('-', $box_number);
+        $scannedYear = $parts[count($parts) - 2];
+        $prefix = "BX-" . $typeName . "-" . $scannedYear . "-";
+
+        // On cherche le dernier carton palettisé pour ce modèle et cette année
+        $stmtLastPalettized = $conn->prepare("
+            SELECT box_number 
+            FROM box 
+            WHERE id_palette IS NOT NULL 
+              AND box_number LIKE :prefix 
+            ORDER BY update_date DESC, id DESC 
+            LIMIT 1
+        ");
+        $stmtLastPalettized->execute([':prefix' => $prefix . '%']);
+
+        // Le numéro de séquence du carton scanné (ex: 5 pour 00005)
+        $scannedNum = intval(end($parts)); 
+
+        if ($stmtLastPalettized->rowCount() > 0) {
+            $lastBox = $stmtLastPalettized->fetch(PDO::FETCH_ASSOC)['box_number'];
+            $lastParts = explode('-', $lastBox);
+            $lastNum = intval(end($lastParts));
+
+            // Si le carton scanné n'est pas exactement le dernier + 1
+            if ($scannedNum !== $lastNum + 1) {
+                $expectedNumStr = str_pad($lastNum + 1, 5, '0', STR_PAD_LEFT);
+                $expectedBox = $prefix . $expectedNumStr;
+
+                echo json_encode([
+                    "state" => "sequence_broken",
+                    "expected" => $expectedBox,
+                    "scanned" => $box_number,
+                    "message" => "Ordre incorrect ! Le dernier carton palettisé était le " . $lastBox . "."
+                ]);
+                exit;
+            }
+        } else {
+            // S'il n'y a encore AUCUN carton palettisé pour cette année, on exige le 00001
+            if ($scannedNum !== 1) {
+                $expectedBox = $prefix . "00001";
+                echo json_encode([
+                    "state" => "sequence_broken",
+                    "expected" => $expectedBox,
+                    "scanned" => $box_number,
+                    "message" => "Aucun carton palettisé pour cette année. Vous devez commencer par le " . $expectedBox . "."
+                ]);
+                exit;
+            }
+        }
+        // ====================================================================
+
         // 6. Affecter à une palette existante ou nouvelle
         // NOUVEAU : On passe $box_number pour extraire l'année
         $palData = self::getOrCreatePalette($conn, $id_meter_type, $qtyLimitPalette, $typeName, $box_number);

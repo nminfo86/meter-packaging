@@ -111,6 +111,7 @@ footer {
 
 #Statistics .flat-btn {
     border-radius: 0;
+    height: calc(1.5em + 0.75rem + 2px); /* Match Bootstrap .form-control height */
 }
 
 #Statistics .flat-canvas-container {

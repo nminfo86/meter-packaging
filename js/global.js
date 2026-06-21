@@ -10,6 +10,13 @@ $('[data-toggle="tooltip"]').tooltip();
 var year = "&copy; 2015" + "-" + new Date().getFullYear() + " ";
     $("#copyrightCms").html(year);
 
+// Load version from changelog.json
+$.getJSON("changelog.json", function(changelog) {
+    if (changelog && changelog.length > 0) {
+        $("#appVersion").html("&mdash; v" + changelog[0].version);
+    }
+});
+
 //Change the head title depending the body id of every page
     $("#headtitle").append($("body").attr('id'));
 

@@ -34,10 +34,19 @@ $(document).ready(function() {
             type: "POST",
             data: formData,
             dataType: "json",
+            beforeSend: function() {
+                $('#statsLoader').show();
+                $('.flat-canvas-container').hide();
+                $('#totalMetersText').text('');
+            },
             success: function(res) {
                 if(res.state === "s") {
                     renderChart(res.data);
                 }
+            },
+            complete: function() {
+                $('#statsLoader').hide();
+                $('.flat-canvas-container').show();
             }
         });
     });
