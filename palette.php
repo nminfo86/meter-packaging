@@ -83,7 +83,7 @@ require_once(__DIR__ . "/php/DbServices.php");
                 <p class="printDate" style="margin-bottom: 5px;"></p>
             </div>
 
-            <table id="printTable" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px;">
+            <table id="printTable" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                 <thead>
                     <tr>
                         <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2; width: 5%;">N°</th>

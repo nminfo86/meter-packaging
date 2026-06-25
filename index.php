@@ -1,6 +1,6 @@
 <?php
-require_once (__DIR__ . "/php/functions.php");
-require_once (__DIR__ . "/php/DbServices.php");
+require_once(__DIR__ . "/php/functions.php");
+require_once(__DIR__ . "/php/DbServices.php");
 ?>
 <html>
 <?php include "includes/head.php"; ?>
@@ -25,7 +25,7 @@ require_once (__DIR__ . "/php/DbServices.php");
                 <!-- <input id="qrProduct" class="form-control form-control-lg col-8 m-auto text-center" type="text" placeholder="Scanner le code barre du compteur"> -->
                 <input id="currentBoxId" type="hidden" value="">
             </div>
-            
+
             <div class="alert alert-danger d-none mt-3 text-center col-8 m-auto" role="alert" id="qrAlert" style="font-weight: 500; font-size: 20px;">
                 <span id="alertMessage"></span>
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -34,11 +34,16 @@ require_once (__DIR__ . "/php/DbServices.php");
             </div>
         </div>
 
-        <div id="generalInfo" class="mb-3 mt-4 card p-3 bg-light d-none">
-            <div class="row text-center">
-                <h5 class="col-4">Modèle : <span class="meterTypeName text-primary font-weight-bold"></span></h5>
-                <h5 class="col-4">N° Carton : <span class="boxNumber text-primary font-weight-bold"></span></h5> 
-                <h5 class="col-4">Progression : <span class="packedQteBox text-success font-weight-bold">0/0</span></h5>
+<div id="generalInfo" class="mb-3 mt-4 card p-2 bg-light">
+            <div class="d-flex justify-content-between align-items-center flex-nowrap">
+                <h5 class="mb-0 px-3">Modèle : <span class="meterTypeName text-primary font-weight-bold"></span></h5>
+                <h5 class="mb-0 px-3 border-left">N° Carton : <span class="boxNumber text-primary font-weight-bold"></span></h5>
+                <h5 class="mb-0 px-3 border-left">Progression : <span class="packedQteBox text-success font-weight-bold">0/0</span></h5>
+                <div class="px-3 border-left text-center">
+                    <div id="teamShiftName" style="font-size: 12px; color: #6c757d; white-space: nowrap;">--</div>
+                    <div id="teamMeterCount" style="font-size: 32px; font-weight: 900; color: #0062cc; line-height: 1;">--</div>
+                    <div style="font-size: 11px; color: #6c757d;">compteurs</div>
+                </div>
             </div>
         </div>
 
@@ -53,12 +58,12 @@ require_once (__DIR__ . "/php/DbServices.php");
                     </tr>
                 </thead>
                 <tbody>
-                    </tbody>
+                </tbody>
             </table>
         </div>
 
         <div id="printDiv" class="d-none">
-            
+
             <h4 class="saieg"> SOCIETE ALGERIENNE DES INDUSTRIES<br>ELECTRIQUES ET GAZIERS</h4>
             <img id="saieglogo" src="images/misc/SaiegLogo.png" class="mb-2">
             <h5 class="contrat" id=""></h5>
@@ -69,7 +74,7 @@ require_once (__DIR__ . "/php/DbServices.php");
             <h4 class="boxNumberPrint"></h4>
             <div id="qrcode" class="mt-2 mb-2"></div>
 
-            <table class= "bareCodePrint">
+            <table class="bareCodePrint">
                 <tr>
                     <td style="padding: 5px; border-bottom: 1px dashed #ddd;">
                         <h6 style="font-weight: bold; margin-bottom: 3px; font-size: 13px; text-transform: uppercase; color: #555;">Premier numéro</h6>
@@ -96,4 +101,5 @@ require_once (__DIR__ . "/php/DbServices.php");
     <?php include "includes/leg.php"; ?>
     <script src="js/ajaxIndex.js?v=<?= filemtime('js/ajaxIndex.js') ?>"></script>
 </body>
+
 </html>
