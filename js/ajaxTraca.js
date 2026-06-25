@@ -1,20 +1,67 @@
-$(document).ready(function() {
+$(document).ready(function () {
 
     // Focaliser l'input automatiquement
     setTimeout(() => { $('#trackBarcode').focus(); }, 500);
 
     // --- TRACK : bouton ---
-    $("#btnTrack").click(function() {
+    $("#btnTrack").click(function () {
         doTrack();
     });
 
     // --- TRACK : touche Entrée ---
-    $("#trackBarcode").keypress(function(e) {
+    $("#trackBarcode").keypress(function (e) {
         if (e.which == 13) {
             e.preventDefault();
             doTrack();
         }
     });
+
+    // Gestion du switch "Activer la recherche manuelle"
+    $("#enableAutocomplete").change(function() {
+        if ($(this).is(":checked")) {
+            $("#trackBarcode").attr("placeholder", "Tapez une partie du code, carton ou palette...");
+            $("#trackBarcode").focus();
+        } else {
+            $("#trackBarcode").attr("placeholder", "Scanner Code-barres, Carton (BX-) ou Palette (PL-)");
+            $("#trackBarcode").focus();
+        }
+    });
+
+    // Autocomplétion intelligente
+    $("#trackBarcode").autocomplete({
+        // La fonction "search" est appelée juste avant de lancer la requête
+        search: function(event, ui) {
+            // Si la case n'est PAS cochée, on annule l'autocomplétion
+            if (!$("#enableAutocomplete").is(":checked")) {
+                return false; 
+            }
+        },
+        source: function (request, response) {
+            $.ajax({
+                url: "php/DbStatistics.php",
+                type: "GET",
+                dataType: "json",
+                data: {
+                    function: "searchAutocomplete",
+                    term: request.term
+                },
+                success: function (data) {
+                    response(data);
+                }
+            });
+        },
+        minLength: 2, // Démarrer la recherche après 3 caractères
+        select: function (event, ui) {
+            // Quand une option est sélectionnée, on met la valeur et on valide
+            $("#trackBarcode").val(ui.item.value);
+            doTrack(); 
+            return false;
+        }
+    }).autocomplete("instance")._renderItem = function (ul, item) {
+        return $("<li>")
+            .append("<div>" + item.label + "</div>")
+            .appendTo(ul);
+    };
 });
 
 function doTrack() {
@@ -28,7 +75,7 @@ function doTrack() {
         type: "POST",
         data: { function: "trackItem", identifier: identifier },
         dataType: "json",
-        success: function(res) {
+        success: function (res) {
             let resultDiv = $("#trackResult");
             resultDiv.removeClass().empty();
 
@@ -40,8 +87,8 @@ function doTrack() {
                 // ==========================================
                 if (res.item_type === "meter") {
                     let d = res.data;
-                    let boxText  = d.box_number    ? `<span class="font-weight-bold text-success">${d.box_number}</span>`     : '<span class="text-danger">Pas encore en carton</span>';
-                    let palText  = d.palette_number ? `<span class="font-weight-bold text-success">${d.palette_number}</span>` : '<span class="text-warning">Pas encore palettisé</span>';
+                    let boxText = d.box_number ? `<a href="javascript:void(0);" onclick="quickTrack('${d.box_number}')" class="font-weight-bold text-primary text-decoration-none"><i class="fas fa-link"></i> ${d.box_number}</a>` : '<span class="text-danger">Pas encore en carton</span>';
+                    let palText = d.palette_number ? `<a href="javascript:void(0);" onclick="quickTrack('${d.palette_number}')" class="font-weight-bold text-success text-decoration-none"><i class="fas fa-link"></i> ${d.palette_number}</a>` : '<span class="text-warning">Pas encore palettisé</span>';
                     let statusBadge = d.meter_status === 'wait'
                         ? '<span class="badge badge-warning">En attente</span>'
                         : '<span class="badge badge-success">Emballé</span>';
@@ -68,9 +115,9 @@ function doTrack() {
                 // CARTON
                 // ==========================================
                 else if (res.item_type === "box") {
-                    let info   = res.info;
+                    let info = res.info;
                     let palText = info.palette_number
-                        ? `<span class="font-weight-bold text-success">${info.palette_number}</span>`
+                        ? `<a href="javascript:void(0);" onclick="quickTrack('${info.palette_number}')" class="font-weight-bold text-success text-decoration-none"><i class="fas fa-link"></i> ${info.palette_number}</a>`
                         : '<span class="text-warning">Pas encore sur palette</span>';
 
                     let rows = '';
@@ -79,11 +126,11 @@ function doTrack() {
                             ? '<span class="badge badge-warning">Attente</span>'
                             : '<span class="badge badge-success">OK</span>';
                         rows += `<tr>
-                                    <td>${index + 1}</td>
-                                    <td class="font-weight-bold">${m.barcode}</td>
-                                    <td>${m.create_date}</td>
-                                    <td>${mStatus}</td>
-                                 </tr>`;
+                                <td>${index + 1}</td>
+                                <td class="font-weight-bold"><a href="javascript:void(0);" onclick="quickTrack('${m.barcode}')" class="text-dark text-decoration-none">${m.barcode}</a></td>
+                                <td>${m.create_date}</td>
+                                <td>${mStatus}</td>
+                             </tr>`;
                     });
 
                     html = `
@@ -120,11 +167,11 @@ function doTrack() {
                     let rows = '';
                     res.contents.forEach((b, index) => {
                         rows += `<tr>
-                                    <td>${index + 1}</td>
-                                    <td class="font-weight-bold">${b.box_number}</td>
-                                    <td>${b.meter_count}</td>
-                                    <td>${b.create_date}</td>
-                                 </tr>`;
+                                <td>${index + 1}</td>
+                                <td class="font-weight-bold"><a href="javascript:void(0);" onclick="quickTrack('${b.box_number}')" class="text-primary text-decoration-none">${b.box_number}</a></td>
+                                <td>${b.meter_count}</td>
+                                <td>${b.create_date}</td>
+                        </tr>`;
                     });
 
                     html = `
@@ -159,15 +206,23 @@ function doTrack() {
             // Vider le champ et remettre le focus
             $("#trackBarcode").val('').focus();
         },
-        error: function() {
+        error: function () {
             $("#trackResult")
                 .removeClass()
                 .addClass('alert alert-danger')
                 .html('<i class="fas fa-exclamation-triangle"></i> Erreur de communication avec le serveur.')
                 .show();
         },
-        complete: function() {
+        complete: function () {
             $("#btnTrack").prop('disabled', false).html('<i class="fas fa-search"></i> Chercher');
         }
     });
+}
+
+// Fonction pour chercher directement un élément depuis un lien
+function quickTrack(identifier) {
+    $("#trackBarcode").val(identifier);
+    doTrack();
+    // Scroll tout en haut au besoin
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
