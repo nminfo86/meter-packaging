@@ -22,6 +22,14 @@ require_once (__DIR__ . "/php/DbServices.php");
             <div class="card-body">
                 <div class="row justify-content-center">
                     <div class="col-md-8">
+                        <!-- Switch pour activer/désactiver l'autocomplétion -->
+                        <div class="custom-control custom-switch mb-3 text-left">
+                            <input type="checkbox" class="custom-control-input" id="enableAutocomplete">
+                            <label class="custom-control-label font-weight-bold text-primary" for="enableAutocomplete" style="cursor: pointer;">
+                                <i class="fas fa-keyboard"></i> Activer la recherche manuelle (Autocomplétion intelligente)
+                            </label>
+                        </div>
+                        
                         <div class="input-group input-group-lg mb-3">
                             <input type="text" id="trackBarcode" class="form-control text-center flat-input" placeholder="Scanner Code-barres, Carton (BX-) ou Palette (PL-)">
                             <div class="input-group-append">

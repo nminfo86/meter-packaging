@@ -5,6 +5,8 @@
 
         <!--<meta name="viewport" content="width=device-width, initial-scale=1.0">-->
         <link href="_rdf/css/bootstrap.min.css" rel="stylesheet">
+        <!-- jQuery UI CSS (Pour l'autocomplétion) -->
+         <link href="_plugins/css/jquery-ui.css" rel="stylesheet">
         <!--Font awesome CSS-->
         <link href="_plugins/css/all.min.css" rel="stylesheet">
         <!--Font awsome-->

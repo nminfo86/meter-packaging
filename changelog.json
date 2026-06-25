@@ -1,4 +1,15 @@
 [
+  {
+    "version": "1.3.0",
+    "date": "2026-06-18",
+    "label": "Tracability Search Improvement",
+    "changes": [
+      "Add links to box and palette in the traceability search results",
+      "Add autocomplete feature search"
+
+    ],
+    "db_migrations": []
+  },
     {
     "version": "1.2.1",
     "date": "2026-06-18",

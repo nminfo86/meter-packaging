@@ -2,8 +2,19 @@
 require_once "Database.php";
 require_once "Config.php";
 
+
+
+// ==========================================
+// 1. ROUTAGE POUR L'AUTOCOMPLETION (MÉTHODE GET)
+// ==========================================
+if (isset($_GET['function']) && $_GET['function'] == "searchAutocomplete") {
+    $term = isset($_GET['term']) ? trim($_GET['term']) : '';
+    DbStatistics::searchAutocomplete($term);
+    exit;
+}
+
 if (isset($_POST['function'])) {
-    
+
     // --- ROUTAGE INTELLIGENT POUR LE TRACKING ---
     if ($_POST['function'] == "trackItem" && isset($_POST['identifier'])) {
         $identifier = trim($_POST['identifier']);
@@ -17,12 +28,12 @@ if (isset($_POST['function'])) {
             DbStatistics::trackMeter($identifier);
         }
     }
-    
-    // --- ROUTAGE POUR LES STATISTIQUES ---
+// --- ROUTAGE POUR LES STATISTIQUES ---
     if ($_POST['function'] == "getStatistics") {
         DbStatistics::getStatistics($_POST);
     }
 }
+    
 
 class DbStatistics {
 
@@ -114,6 +125,36 @@ class DbStatistics {
         echo json_encode(["state" => "s", "item_type" => "palette", "info" => $palInfo, "contents" => $boxes]);
     }
 
+
+    // Recherche globale pour l'autocomplétion
+    static function searchAutocomplete($term) {
+        $conn = Database::getConnection();
+        $term = '%' . $term . '%';
+        $results = [];
+
+        // 1. Rechercher des compteurs
+        $stmtM = $conn->prepare("SELECT barcode FROM meter WHERE barcode LIKE :term LIMIT 10");
+        $stmtM->execute([':term' => $term]);
+        while($row = $stmtM->fetch(PDO::FETCH_ASSOC)) {
+            $results[] = ["label" => "<i class='fas fa-tachometer-alt'></i> " . $row['barcode'], "value" => $row['barcode']];
+        }
+
+        // 2. Rechercher des cartons
+        $stmtB = $conn->prepare("SELECT box_number FROM box WHERE box_number LIKE :term LIMIT 5");
+        $stmtB->execute([':term' => $term]);
+        while($row = $stmtB->fetch(PDO::FETCH_ASSOC)) {
+            $results[] = ["label" => "<i class='fas fa-box text-primary'></i> " . $row['box_number'], "value" => $row['box_number']];
+        }
+
+        // 3. Rechercher des palettes
+        $stmtP = $conn->prepare("SELECT palette_number FROM palette WHERE palette_number LIKE :term LIMIT 5");
+        $stmtP->execute([':term' => $term]);
+        while($row = $stmtP->fetch(PDO::FETCH_ASSOC)) {
+            $results[] = ["label" => "<i class='fas fa-pallet text-success'></i> " . $row['palette_number'], "value" => $row['palette_number']];
+        }
+
+        echo json_encode($results);
+    }
 
     // 4. Récupérer les statistiques globales
     static function getStatistics($params) {
