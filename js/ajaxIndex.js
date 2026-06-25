@@ -2,8 +2,59 @@ var dataType = "JSON";
 var qrAlert = $("#qrAlert");
 var packTable = $("#packTable");
 
+function getCurrentShift() {
+    var now = new Date();
+    var h = now.getHours();
+
+    function padDate(d) {
+        return d.getFullYear() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0');
+    }
+
+    var today     = padDate(now);
+    var yesterday = padDate(new Date(now.getTime() - 86400000));
+    var tomorrow  = padDate(new Date(now.getTime() + 86400000));
+
+    if (h >= 5 && h < 13) {
+        return { name: "Équipe 1  |  05h → 13h", start_date: today,     end_date: today,    start_hour: 5,  end_hour: 12 };
+    } else if (h >= 13 && h < 21) {
+        return { name: "Équipe 2  |  13h → 21h", start_date: today,     end_date: today,    start_hour: 13, end_hour: 20 };
+    } else if (h >= 21) {
+        return { name: "Équipe 3  |  21h → 05h", start_date: today,     end_date: tomorrow, start_hour: 21, end_hour: 4  };
+    } else { // h < 5
+        return { name: "Équipe 3  |  21h → 05h", start_date: yesterday, end_date: today,    start_hour: 21, end_hour: 4  };
+    }
+}
+
+function loadTeamCount() {
+    var shift = getCurrentShift();
+    $.ajax({
+        url: "php/DbStatistics.php",
+        type: "POST",
+        dataType: "JSON",
+        data: {
+            function:    "getStatistics",
+            id_meter_type: "all",
+            start_date:  shift.start_date,
+            end_date:    shift.end_date,
+            start_hour:  shift.start_hour,
+            end_hour:    shift.end_hour
+        },
+        success: function (data) {
+            if (data.state === "s") {
+                var total = 0;
+                $.each(data.data, function (i, row) { total += parseInt(row.total_meters); });
+                $("#teamMeterCount").text(total);
+                $("#teamShiftName").text(shift.name);
+            }
+        }
+    });
+}
+
 $(document).ready(function () {
     loadMeterTypes();
+    loadTeamCount();   // ← ADD THIS
 
     var barcodeStr = '';
 
@@ -178,6 +229,7 @@ $(document).ready(function () {
                     } else {
                         $("#manualPrintBtn").addClass("d-none");
                     }
+                    loadTeamCount();  // ← ADD THIS (real-time update after every scan)
                 }
                 $("#divLoadingcms").addClass("d-none");
             },
