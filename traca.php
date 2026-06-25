@@ -38,6 +38,19 @@ require_once (__DIR__ . "/php/DbServices.php");
                                 </button>
                             </div>
                         </div>
+
+                        <!-- Nouveaux boutons -->
+                        <div class="mt-4 text-center">
+                            <button class="btn btn-warning flat-btn mx-2 mb-2 font-weight-bold" type="button" id="btnMetersWait">
+                                <i class="fas fa-hourglass-half"></i> Compteurs en attente
+                            </button>
+                            <button class="btn btn-warning flat-btn mx-2 mb-2 font-weight-bold" type="button" id="btnBoxesOpen">
+                                <i class="fas fa-box-open"></i> Cartons ouverts
+                            </button>
+                            <button class="btn btn-success flat-btn mx-2 mb-2 font-weight-bold" type="button" id="btnPalettesOpen">
+                                <i class="fas fa-pallet"></i> Palettes ouvertes
+                            </button>
+                        </div>
                     </div>
                 </div>
 

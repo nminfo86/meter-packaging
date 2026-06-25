@@ -27,6 +27,19 @@ $(document).ready(function () {
         }
     });
 
+    // --- Nouveaux Boutons ---
+    $("#btnMetersWait").click(function () {
+        getSpecialList('metersWait');
+    });
+
+    $("#btnBoxesOpen").click(function () {
+        getSpecialList('boxesOpen');
+    });
+
+    $("#btnPalettesOpen").click(function () {
+        getSpecialList('palettesOpen');
+    });
+
     // Autocomplétion intelligente
     $("#trackBarcode").autocomplete({
         // La fonction "search" est appelée juste avant de lancer la requête
@@ -225,4 +238,131 @@ function quickTrack(identifier) {
     doTrack();
     // Scroll tout en haut au besoin
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function getSpecialList(listType) {
+    let resultDiv = $("#trackResult");
+    resultDiv.removeClass().empty().html('<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i></div>').show();
+
+    $.ajax({
+        url: "php/DbStatistics.php",
+        type: "POST",
+        data: { function: "getSpecialList", listType: listType },
+        dataType: "json",
+        success: function (res) {
+            resultDiv.empty();
+
+            if (res.state === "s") {
+                let html = '';
+                
+                if (listType === 'metersWait') {
+                    if(res.data.length === 0) {
+                        resultDiv.html('<div class="alert alert-info">Aucun compteur en attente trouvé.</div>');
+                        return;
+                    }
+                    let rows = '';
+                    res.data.forEach((item, index) => {
+                        let boxText = item.box_number ? `<a href="javascript:void(0);" onclick="quickTrack('${item.box_number}')" class="text-primary font-weight-bold text-decoration-none"><i class="fas fa-link"></i> ${item.box_number}</a>` : '<span class="text-muted">Aucun</span>';
+                        rows += `<tr>
+                                    <td>${index + 1}</td>
+                                    <td class="font-weight-bold"><a href="javascript:void(0);" onclick="quickTrack('${item.barcode}')" class="text-dark text-decoration-none">${item.barcode}</a></td>
+                                    <td>${item.meter_type}</td>
+                                    <td>${boxText}</td>
+                                    <td>${item.create_date}</td>
+                                 </tr>`;
+                    });
+
+                    html = `
+                        <div class="card flat-card">
+                            <div class="card-header flat-card-header font-weight-bold text-warning">
+                                <i class="fas fa-hourglass-half"></i> Compteurs en attente
+                            </div>
+                            <div class="card-body">
+                                <span class="badge badge-warning mb-3">Total : ${res.data.length} compteur(s)</span>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered bg-white text-center">
+                                        <thead class="thead-dark">
+                                            <tr><th>N°</th><th>Code-barres</th><th>Modèle</th><th>Carton (Lien)</th><th>Date d'emballage</th></tr>
+                                        </thead>
+                                        <tbody>${rows}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>`;
+                } else if (listType === 'boxesOpen') {
+                     if(res.data.length === 0) {
+                        resultDiv.html('<div class="alert alert-info">Aucun carton en attente trouvé.</div>');
+                        return;
+                    }
+                    let rows = '';
+                    res.data.forEach((item, index) => {
+                         let palText = item.palette_number ? `<a href="javascript:void(0);" onclick="quickTrack('${item.palette_number}')" class="text-success font-weight-bold text-decoration-none"><i class="fas fa-link"></i> ${item.palette_number}</a>` : '<span class="text-muted">Aucun</span>';
+                        rows += `<tr>
+                                    <td>${index + 1}</td>
+                                    <td class="font-weight-bold"><a href="javascript:void(0);" onclick="quickTrack('${item.box_number}')" class="text-primary text-decoration-none">${item.box_number}</a></td>
+                                    <td>${palText}</td>
+                                    <td>${item.create_date}</td>
+                                 </tr>`;
+                    });
+
+                     html = `
+                        <div class="card flat-card">
+                            <div class="card-header flat-card-header font-weight-bold text-warning">
+                                <i class="fas fa-box-open"></i> Cartons en attente
+                            </div>
+                            <div class="card-body">
+                                <span class="badge badge-warning mb-3">Total : ${res.data.length} carton(s)</span>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered bg-white text-center">
+                                        <thead class="thead-dark">
+                                            <tr><th>N°</th><th>Numéro du Carton</th><th>Palette (Lien)</th><th>Date de création</th></tr>
+                                        </thead>
+                                        <tbody>${rows}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>`;
+                } else if (listType === 'palettesOpen') {
+                    if(res.data.length === 0) {
+                        resultDiv.html('<div class="alert alert-info">Aucune palette ouverte trouvée.</div>');
+                        return;
+                    }
+                    let rows = '';
+                    res.data.forEach((item, index) => {
+                        rows += `<tr>
+                                    <td>${index + 1}</td>
+                                    <td class="font-weight-bold"><a href="javascript:void(0);" onclick="quickTrack('${item.palette_number}')" class="text-success text-decoration-none">${item.palette_number}</a></td>
+                                    <td>${item.create_date}</td>
+                                 </tr>`;
+                    });
+
+                     html = `
+                        <div class="card flat-card">
+                            <div class="card-header flat-card-header font-weight-bold text-success">
+                                <i class="fas fa-pallet"></i> Palettes Ouvertes
+                            </div>
+                            <div class="card-body">
+                                <span class="badge badge-success mb-3">Total : ${res.data.length} palette(s)</span>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered bg-white text-center">
+                                        <thead class="thead-dark">
+                                            <tr><th>N°</th><th>Numéro de la Palette</th><th>Date de création</th></tr>
+                                        </thead>
+                                        <tbody>${rows}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+
+                resultDiv.html(html);
+
+            } else {
+                 resultDiv.addClass('alert alert-danger').html(`<i class="fas fa-exclamation-triangle"></i> Erreur: ${res.message}`);
+            }
+        },
+        error: function () {
+             resultDiv.addClass('alert alert-danger').html('<i class="fas fa-exclamation-triangle"></i> Erreur de communication.');
+        }
+    });
 }

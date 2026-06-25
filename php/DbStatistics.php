@@ -28,6 +28,11 @@ if (isset($_POST['function'])) {
             DbStatistics::trackMeter($identifier);
         }
     }
+
+    if ($_POST['function'] == "getSpecialList" && isset($_POST['listType'])) {
+        DbStatistics::getSpecialList($_POST['listType']);
+    }
+
 // --- ROUTAGE POUR LES STATISTIQUES ---
     if ($_POST['function'] == "getStatistics") {
         DbStatistics::getStatistics($_POST);
@@ -123,6 +128,52 @@ class DbStatistics {
         $boxes = $stmtBoxes->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode(["state" => "s", "item_type" => "palette", "info" => $palInfo, "contents" => $boxes]);
+    }
+
+    // Listes Spéciales
+    static function getSpecialList($listType) {
+        $conn = Database::getConnection();
+        
+        if ($listType === 'metersWait') {
+            $stmt = $conn->prepare("
+                SELECT m.barcode, m.create_date, t.meter_type, b.box_number 
+                FROM meter m 
+                JOIN meter_type t ON m.id_meter_type = t.id 
+                LEFT JOIN box b ON m.id_box = b.id 
+                WHERE m.status = 'wait'
+                ORDER BY m.create_date DESC
+            ");
+            $stmt->execute();
+            echo json_encode(["state" => "s", "data" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            return;
+        }
+        
+        if ($listType === 'boxesOpen') {
+            $stmt = $conn->prepare("
+                SELECT b.box_number, b.create_date, p.palette_number 
+                FROM box b 
+                LEFT JOIN palette p ON b.id_palette = p.id 
+                WHERE b.status = 'open'
+                ORDER BY b.create_date DESC
+            ");
+            $stmt->execute();
+            echo json_encode(["state" => "s", "data" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            return;
+        }
+
+        if ($listType === 'palettesOpen') {
+            $stmt = $conn->prepare("
+                SELECT p.palette_number, p.create_date 
+                FROM palette p 
+                WHERE p.status = 'open'
+                ORDER BY p.create_date DESC
+            ");
+            $stmt->execute();
+            echo json_encode(["state" => "s", "data" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            return;
+        }
+
+        echo json_encode(["state" => "f", "message" => "Type de liste invalide."]);
     }
 
 
