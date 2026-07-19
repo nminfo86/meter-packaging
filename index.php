@@ -70,6 +70,7 @@ require_once(__DIR__ . "/php/DbServices.php");
             <h5 class="nomenclature"></h5>
 
             <h3 class="productName text-center font-weight-bold"></h3>
+            <h1 class="boxOrder text-center font-weight-bold"></h1>
 
             <h4 class="boxNumberPrint"></h4>
             <div id="qrcode" class="mt-2 mb-2"></div>

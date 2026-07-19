@@ -116,8 +116,9 @@ $(document).ready(function () {
     $("#manualPrintBtn").click(function () {
         let meterName = $(this).attr("data-meter");
         let boxNum = $(this).attr("data-box");
+        let order = $(this).attr("data-order"); // NOUVEAU pour l'ordre du carton dans la palette
         if (meterName && boxNum) {
-            printBox(meterName, boxNum);
+            printBox(meterName, boxNum, order); 
         }
     });
 
@@ -134,6 +135,7 @@ $(document).ready(function () {
                         'data-model-code': item.model_code,
                         'data-contrat': item.contrat,            // NOUVEAU
                         'data-nomenclature': item.nomenclature,  // NOUVEAU
+                        'data-qty-palette': item.qty_box_palette,
                         text: item.meter_type + " (Carton de " + item.qty_box + ")"
                     }));
                 });
@@ -217,7 +219,7 @@ $(document).ready(function () {
 
                     // Gestion des différents cas de fermeture/attente
                     if (data.message === "box-full") {
-                        printBox(data.meter_type_name, data.box_number);
+                       printBox(data.meter_type_name, data.box_number, data.order_in_palette); // <-- Ajouter data.order_in_palette
                         clearUI();
                     } else if (data.message === "box-full-wait") {
                         swal("Carton mis en pause", "Ce carton est plein, mais il contient des compteurs en attente. Mettez-le de côté. L'étiquette ne sera pas imprimée.", "info");
@@ -318,6 +320,7 @@ $(document).ready(function () {
                     $("#manualPrintBtn").removeClass("d-none");
                     $("#manualPrintBtn").attr("data-meter", data.meter_type_name);
                     $("#manualPrintBtn").attr("data-box", data.box_number);
+                    $("#manualPrintBtn").attr("data-order", data.order_in_palette); // <--- NOUVELLE ATTRIBUTION POUR L'ORDRE DU CARTON DANS LA PALETTE
                 }
                 $("#divLoadingcms").addClass("d-none");
             },
@@ -328,11 +331,25 @@ $(document).ready(function () {
         });
     }
 
-    function printBox(meterTypeName, boxNumber) {
+    function printBox(meterTypeName, boxNumber, orderInPalette) {
         let qte = packTable.find("tbody tr").length;
 
+        // 1. Ajouter le N° de l'ordre 
+        // let orderString = orderInPalette ? " - N° " + orderInPalette : "";
+        let orderString = orderInPalette ;
+
+        // 2. Garder BX, l'année et la série (ex: BX-26-00586)
+        let boxParts = boxNumber.split('-');
+        let shortBoxNumber = boxNumber;
+        if (boxParts.length >= 2) {
+            // boxParts[0] correspond à "BX"
+            shortBoxNumber = boxParts[0] + "-" + boxParts[boxParts.length - 2] + "-" + boxParts[boxParts.length - 1];
+        }
+
+        // Impression à l'écran
         $("#printDiv .productName").text("COMPTEUR : " + meterTypeName.toUpperCase());
-        $("#printDiv .boxNumberPrint").text(boxNumber);
+        $("#printDiv .boxNumberPrint").text(shortBoxNumber); // On utilise le nom court !
+        $("#printDiv .boxOrder").text(orderString); // On utilise le nom court !
         $("#printDiv .qte").text("QTE : " + qte + " PCS");
         $("#printDiv .date").text(getDateTime());
 
