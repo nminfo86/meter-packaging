@@ -207,10 +207,13 @@ class DbServices {
             $message = "box-full-wait"; 
         }
 
+        $order_in_palette = self::getBoxOrderInPalette($conn, $id_meter_type, $id_box);
+
         echo json_encode([
             "state" => "s",
             "message" => $message,
             "box_number" => $box_number,
+            "order_in_palette" => $order_in_palette,
             "id_box" => $id_box,
             "packed_box_qte" => "$currentQty/$qtyLimit",
             "meter_type_name" => $typeName,
@@ -261,7 +264,7 @@ class DbServices {
 
     static function reopenBox($id_box) {
         $conn = Database::getConnection();
-        $stmtBox = $conn->prepare("SELECT b.box_number, t.meter_type, t.qty_box 
+        $stmtBox = $conn->prepare("SELECT b.box_number, t.meter_type, t.qty_box ,t.id as id_meter_type
                                    FROM box b
                                    JOIN meter m ON m.id_box = b.id
                                    JOIN meter_type t ON m.id_meter_type = t.id
@@ -280,10 +283,13 @@ class DbServices {
             $stmtAllMeters->execute([':id_box' => $id_box]);
             $allMeters = $stmtAllMeters->fetchAll(PDO::FETCH_ASSOC);
             $currentQty = count($allMeters);
+
+            $order_in_palette = self::getBoxOrderInPalette($conn, $boxInfo['id_meter_type'], $id_box);
             
             echo json_encode([
                 "state" => "s",
                 "box_number" => $box_number,
+                "order_in_palette" => $order_in_palette,
                 "id_box" => $id_box,
                 "packed_box_qte" => "$currentQty/$qtyLimit",
                 "meter_type_name" => $typeName,
@@ -559,6 +565,52 @@ class DbServices {
             "update_date" => $info['update_date'],
             "boxes" => $printBoxes
         ]);
+    }
+    // ========================================================================
+    // NOUVELLE FONCTION : CALCUL DE L'ORDRE DU CARTON DANS LA PALETTE
+    // ========================================================================
+
+    private static function getBoxOrderInPalette($conn, $id_meter_type, $id_box) {
+        // 1. Quantité max actuelle de la palette
+        $stmtType = $conn->prepare("SELECT qty_box_palette FROM meter_type WHERE id = ?");
+        $stmtType->execute([$id_meter_type]);
+        $qtyLimitPalette = $stmtType->fetchColumn();
+
+        // 2. Le carton est-il déjà rangé dans une palette précise ?
+        $stmtPal = $conn->prepare("SELECT id_palette FROM box WHERE id = ?");
+        $stmtPal->execute([$id_box]);
+        $id_palette = $stmtPal->fetchColumn();
+
+        if (!empty($id_palette)) {
+            // Déjà palettisé : on compte sa vraie place dans SA palette
+            $stmtCount = $conn->prepare("SELECT COUNT(*) FROM box WHERE id_palette = ? AND id <= ?");
+            $stmtCount->execute([$id_palette, $id_box]);
+            return $stmtCount->fetchColumn();
+        } else {
+            // 3. Pas encore palettisé : On ignore le passé et on compte les cartons depuis la dernière palette fermée
+            $stmtLast = $conn->prepare("
+                SELECT MAX(b.id) FROM box b 
+                JOIN palette p ON b.id_palette = p.id 
+                JOIN meter m ON m.id_box = b.id
+                WHERE p.status = 'closed' AND m.id_meter_type = ?
+            ");
+            $stmtLast->execute([$id_meter_type]);
+            $lastClosedBoxId = $stmtLast->fetchColumn();
+            if (!$lastClosedBoxId) $lastClosedBoxId = 0;
+
+            $stmtCount = $conn->prepare("
+                SELECT COUNT(DISTINCT m.id_box) FROM meter m 
+                WHERE m.id_meter_type = ? AND m.id_box > ? AND m.id_box <= ?
+            ");
+            $stmtCount->execute([$id_meter_type, $lastClosedBoxId, $id_box]);
+            $boxesSince = $stmtCount->fetchColumn();
+
+            // Modulo sécurisé basé uniquement sur la production RÉCENTE
+            if ($qtyLimitPalette > 0 && $boxesSince > 0) {
+                return (($boxesSince - 1) % $qtyLimitPalette) + 1;
+            }
+            return 1;
+        }
     }
 }
 ?>
