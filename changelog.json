@@ -1,11 +1,19 @@
 [
-    {
+  {
+    "version": "1.6.0",
+    "date": "2026-07-19",
+    "label": "add box order in palette feature",
+    "changes": [
+      "show the order of boxes in the palette in box label"
+    ],
+    "db_migrations": []
+  },
+  {
     "version": "1.5.0",
     "date": "2026-06-25",
     "label": "real time team pack qte feature",
     "changes": [
       "Add current team pack qty in the general info section"
-
     ],
     "db_migrations": []
   },
@@ -15,7 +23,6 @@
     "label": "wait items feature implementation",
     "changes": [
       "Add wait meters or boxes and palette open buttons"
-
     ],
     "db_migrations": []
   },
@@ -26,18 +33,16 @@
     "changes": [
       "Add links to box and palette in the traceability search results",
       "Add autocomplete feature search"
-
     ],
     "db_migrations": []
   },
-    {
+  {
     "version": "1.2.1",
     "date": "2026-06-18",
     "label": "Database Optimization",
     "changes": [
       "Added necessary indexes to improve query performance",
       "Optimized statistics queries for faster data retrieval"
-
     ],
     "db_migrations": []
   },

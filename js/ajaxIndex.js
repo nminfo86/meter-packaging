@@ -417,7 +417,7 @@ $(document).ready(function () {
             targetStyles: ['*']
         });
 
-        $("#printDiv").addClass("");
+        $("#printDiv").addClass("d-none");
     }
 
 
