@@ -12,18 +12,18 @@ function getCurrentShift() {
             String(d.getDate()).padStart(2, '0');
     }
 
-    var today     = padDate(now);
+    var today = padDate(now);
     var yesterday = padDate(new Date(now.getTime() - 86400000));
-    var tomorrow  = padDate(new Date(now.getTime() + 86400000));
+    var tomorrow = padDate(new Date(now.getTime() + 86400000));
 
     if (h >= 5 && h < 13) {
-        return { name: "Équipe 1  |  05h → 13h", start_date: today,     end_date: today,    start_hour: 5,  end_hour: 12 };
+        return { name: "Équipe 1  |  05h → 13h", start_date: today, end_date: today, start_hour: 5, end_hour: 12 };
     } else if (h >= 13 && h < 21) {
-        return { name: "Équipe 2  |  13h → 21h", start_date: today,     end_date: today,    start_hour: 13, end_hour: 20 };
+        return { name: "Équipe 2  |  13h → 21h", start_date: today, end_date: today, start_hour: 13, end_hour: 20 };
     } else if (h >= 21) {
-        return { name: "Équipe 3  |  21h → 05h", start_date: today,     end_date: tomorrow, start_hour: 21, end_hour: 4  };
+        return { name: "Équipe 3  |  21h → 05h", start_date: today, end_date: tomorrow, start_hour: 21, end_hour: 4 };
     } else { // h < 5
-        return { name: "Équipe 3  |  21h → 05h", start_date: yesterday, end_date: today,    start_hour: 21, end_hour: 4  };
+        return { name: "Équipe 3  |  21h → 05h", start_date: yesterday, end_date: today, start_hour: 21, end_hour: 4 };
     }
 }
 
@@ -34,12 +34,12 @@ function loadTeamCount() {
         type: "POST",
         dataType: "JSON",
         data: {
-            function:    "getStatistics",
+            function: "getStatistics",
             id_meter_type: "all",
-            start_date:  shift.start_date,
-            end_date:    shift.end_date,
-            start_hour:  shift.start_hour,
-            end_hour:    shift.end_hour
+            start_date: shift.start_date,
+            end_date: shift.end_date,
+            start_hour: shift.start_hour,
+            end_hour: shift.end_hour
         },
         success: function (data) {
             if (data.state === "s") {
@@ -83,13 +83,22 @@ $(document).ready(function () {
 
             // --- NOUVELLE VÉRIFICATION DU MODÈLE DE COMPTEUR ---
             let selectedOption = $("#meterTypeSelect").find(':selected');
-            let expectedModelCode = selectedOption.attr('data-model-code');
+
+            // On convertit en chaîne de caractères (String) pour s'assurer de pouvoir vérifier sa longueur
+            let expectedModelCode = String(selectedOption.attr('data-model-code'));
             let selectedModelName = selectedOption.text().split(' (')[0]; // Récupère le nom sans la parenthèse
 
-            // On s'assure que le code fait au moins 5 caractères de long pour éviter un bug
-            if (barcode.length >= 5) {
-                // charAt(4) cible le 5ème caractère, car l'indexation commence à 0 (0,1,2,3,4)
-                let scannedModelCode = barcode.charAt(4);
+            // On calcule le nombre de caractères du code attendu (ex: "1" = 1, "55" = 2)
+            let codeLength = expectedModelCode.length;
+            let requiredBarcodeLength = 4 + codeLength;
+
+            // On s'assure que le code est suffisamment long pour éviter un bug
+            if (barcode.length >= requiredBarcodeLength) {
+
+                // Extrait les caractères en commençant par le 5ème (index 4).
+                // Si expectedModelCode est "1", il extrait 1 caractère (index 4 à 5).
+                // Si expectedModelCode est "55", il extrait 2 caractères (index 4 à 6).
+                let scannedModelCode = barcode.substring(4, 4 + codeLength);
 
                 if (scannedModelCode !== expectedModelCode) {
                     showAlertFailed("Erreur : Ce compteur n'est pas un " + selectedModelName + " ! (Code trouvé : " + scannedModelCode + ", Code attendu : " + expectedModelCode + ")");
@@ -97,7 +106,8 @@ $(document).ready(function () {
                     return; // On bloque l'exécution ici, rien ne sera envoyé au serveur
                 }
             } else {
-                showAlertFailed("Erreur : Code barre invalide (trop court).");
+                // Optionnel : Gestion du cas où le code scanné est anormalement court
+                showAlertFailed("Erreur : Le code-barres scanné est trop court.");
                 barcodeStr = '';
                 return;
             }
@@ -118,7 +128,7 @@ $(document).ready(function () {
         let boxNum = $(this).attr("data-box");
         let order = $(this).attr("data-order"); // NOUVEAU pour l'ordre du carton dans la palette
         if (meterName && boxNum) {
-            printBox(meterName, boxNum, order); 
+            printBox(meterName, boxNum, order);
         }
     });
 
@@ -219,7 +229,7 @@ $(document).ready(function () {
 
                     // Gestion des différents cas de fermeture/attente
                     if (data.message === "box-full") {
-                       printBox(data.meter_type_name, data.box_number, data.order_in_palette); // <-- Ajouter data.order_in_palette
+                        printBox(data.meter_type_name, data.box_number, data.order_in_palette); // <-- Ajouter data.order_in_palette
                         clearUI();
                     } else if (data.message === "box-full-wait") {
                         swal("Carton mis en pause", "Ce carton est plein, mais il contient des compteurs en attente. Mettez-le de côté. L'étiquette ne sera pas imprimée.", "info");
@@ -336,7 +346,7 @@ $(document).ready(function () {
 
         // 1. Ajouter le N° de l'ordre 
         // let orderString = orderInPalette ? " - N° " + orderInPalette : "";
-        let orderString = orderInPalette ;
+        let orderString = orderInPalette;
 
         // 2. Garder BX, l'année et la série (ex: BX-26-00586)
         let boxParts = boxNumber.split('-');
@@ -357,9 +367,9 @@ $(document).ready(function () {
         // Vous pouvez récupérer ces données dynamiquement depuis l'option sélectionnée
         let selectedOption = $("#meterTypeSelect").find(':selected');
         let contrat = selectedOption.attr('data-contrat');
-        let nomenclature = selectedOption.attr('data-nomenclature');  
+        let nomenclature = selectedOption.attr('data-nomenclature');
 
-         $("#printDiv .contrat").text("N° Contrat : " + contrat);
+        $("#printDiv .contrat").text("N° Contrat : " + contrat);
         $("#printDiv .nomenclature").text("N° Nomenclature : " + nomenclature);
 
         // 2. Extraire, nettoyer et trier tous les codes-barres scannés
