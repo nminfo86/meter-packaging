@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-07-21",
+    "label": "update meter counter for each team by meter type",
+    "changes": [
+      "Add a new feature to update the meter counter for each team based on the meter type"
+    ],
+    "db_migrations": []
+  },
+  {
+    "version": "1.7.0",
+    "date": "2026-07-20",
+    "label": "handle meter types that has two number identification",
+    "changes": [
+      "Add support for meter types with two number identification in the system and database"
+    ],
+    "db_migrations": []
+  },
+  {
     "version": "1.6.0",
     "date": "2026-07-19",
     "label": "add box order in palette feature",
