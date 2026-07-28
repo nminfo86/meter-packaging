@@ -29,13 +29,14 @@ function getCurrentShift() {
 
 function loadTeamCount() {
     var shift = getCurrentShift();
+    let selectedMeter = $("#meterTypeSelect").val();
     $.ajax({
         url: "php/DbStatistics.php",
         type: "POST",
         dataType: "JSON",
         data: {
             function: "getStatistics",
-            id_meter_type: "all",
+            id_meter_type: selectedMeter,
             start_date: shift.start_date,
             end_date: shift.end_date,
             start_hour: shift.start_hour,
@@ -56,6 +57,9 @@ $(document).ready(function () {
     loadMeterTypes();
     loadTeamCount();   // ← ADD THIS
 
+    $('#meterTypeSelect').on('change', function() {
+    loadTeamCount();
+});
     var barcodeStr = '';
 
     // Amélioration 1 : Écoute du scan de manière globale (Window)
