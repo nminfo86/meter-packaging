@@ -42,6 +42,54 @@ class DbServices {
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
+    // FONCTION PRIVÉE UTILITAIRE : Valide la structure d'un code-barres compteur
+    // AVANT toute création de carton/palette (fabricant, année, modèle, longueur).
+    // Voir incident production : un code-barres mal formé ("858526200902") a créé
+    // un carton fantôme BX-SGT34-K-85-00001 et faussé l'ordre des cartons en palette.
+    private static function validateBarcodeFormat($barcode, $typeName, $modelCode) {
+        // 1. Longueur stricte (ex : 12 chiffres)
+        if (strlen($barcode) !== Config::$barcode_length) {
+            return [
+                "valid" => false,
+                "message" => "Code-barres invalide : longueur attendue " . Config::$barcode_length . " chiffres (reçu : " . strlen($barcode) . ")."
+            ];
+        }
+
+        // 2. Uniquement des chiffres
+        if (!preg_match('/^\d+$/', $barcode)) {
+            return ["valid" => false, "message" => "Code-barres invalide : seuls des chiffres sont autorisés."];
+        }
+
+        // 3. Code fabricant (2 premiers chiffres) doit être dans la liste blanche
+        $manufacturerCode = substr($barcode, 0, 2);
+        if (!in_array($manufacturerCode, Config::$valid_manufacturer_codes, true)) {
+            return ["valid" => false, "message" => "Code-barres invalide : fabricant inconnu (code $manufacturerCode)."];
+        }
+
+        // 4. Année de production (3ème et 4ème chiffres) doit être dans une plage réaliste
+        $yearCode = substr($barcode, 2, 2);
+        $currentYear = intval(date('y'));
+        $minYear = Config::$production_year_min;
+        $maxYear = $currentYear + 1; // tolère la production anticipée de l'année suivante
+        $yearInt = intval($yearCode);
+        if ($yearInt < $minYear || $yearInt > $maxYear) {
+            return ["valid" => false, "message" => "Code-barres invalide : année de production incorrecte ($yearCode)."];
+        }
+
+        // 5. Code modèle (à partir du 5ème chiffre) doit correspondre au type sélectionné
+        $modelCodeStr = strval($modelCode);
+        $codeLength = strlen($modelCodeStr);
+        $scannedModelCode = substr($barcode, 4, $codeLength);
+        if ($scannedModelCode !== $modelCodeStr) {
+            return [
+                "valid" => false,
+                "message" => "Code-barres invalide : ce compteur n'est pas un $typeName (code trouvé : $scannedModelCode, attendu : $modelCodeStr)."
+            ];
+        }
+
+        return ["valid" => true];
+    }
+
     // FONCTION PRIVÉE UTILITAIRE : Cherche un carton ouvert ou en crée un
     private static function getOrCreateBox($conn, $id_meter_type, $qtyLimit, $typeName, $barcode) {
         // Extraction de l'année depuis le code-barres (3ème et 4ème caractère)
@@ -90,7 +138,32 @@ class DbServices {
     static function packMeter($barcode, $id_meter_type) {
         $conn = Database::getConnection();
 
-        // 1. Vérifier si le compteur existe déjà
+        // 1. Récupérer les infos du type de compteur (nécessaire pour valider le code-barres)
+        $stmtType = $conn->prepare("SELECT meter_type, qty_box, model_code FROM meter_type WHERE id = :id");
+        $stmtType->execute([':id' => $id_meter_type]);
+        $typeInfo = $stmtType->fetch(PDO::FETCH_ASSOC);
+
+        if (!$typeInfo) {
+            echo json_encode(["state" => "f", "message" => "Modèle de compteur introuvable."]);
+            exit;
+        }
+
+        $qtyLimit = $typeInfo['qty_box'];
+        $typeName = $typeInfo['meter_type'];
+
+        // 2. VALIDATION STRICTE DU CODE-BARRES (longueur, fabricant, année, modèle)
+        // Bloque ici tout code-barres mal formé, AVANT toute création de carton.
+        $validation = self::validateBarcodeFormat($barcode, $typeName, $typeInfo['model_code']);
+        if (!$validation['valid']) {
+            echo json_encode([
+                "state" => "invalid_barcode",
+                "message" => $validation['message'],
+                "barcode" => $barcode
+            ]);
+            exit;
+        }
+
+        // 3. Vérifier si le compteur existe déjà
         $stmtCheck = $conn->prepare("
             SELECT m.id, m.id_box, m.status as meter_status, b.status as box_status 
             FROM meter m 
@@ -123,14 +196,7 @@ class DbServices {
             }
         }
 
-        // 2. Limite du carton
-        $stmtType = $conn->prepare("SELECT meter_type, qty_box FROM meter_type WHERE id = :id");
-        $stmtType->execute([':id' => $id_meter_type]);
-        $typeInfo = $stmtType->fetch(PDO::FETCH_ASSOC);
-        $qtyLimit = $typeInfo['qty_box'];
-        $typeName = $typeInfo['meter_type'];
-
-        // 3. Traitement d'un NOUVEAU compteur (pas une régularisation)
+        // 4. Traitement d'un NOUVEAU compteur (pas une régularisation)
         if (!$isResolvingWait) {
             // Vérification stricte de la séquence
             $stmtLastGlobal = $conn->prepare("SELECT barcode FROM meter WHERE id_meter_type = :id_type ORDER BY id DESC LIMIT 1");
@@ -174,7 +240,7 @@ class DbServices {
             $box_number = $stmtBoxNum->fetch(PDO::FETCH_ASSOC)['box_number'];
         }
 
-        // 4. Récupérer tous les compteurs du carton et vérifier la présence de 'wait'
+        // 5. Récupérer tous les compteurs du carton et vérifier la présence de 'wait'
         $stmtAllMeters = $conn->prepare("SELECT barcode, create_date, status FROM meter WHERE id_box = :id_box ORDER BY id DESC");
         $stmtAllMeters->execute([':id_box' => $id_box]);
         $allMeters = $stmtAllMeters->fetchAll(PDO::FETCH_ASSOC);
@@ -190,7 +256,7 @@ class DbServices {
 
         $message = "success";
         
-        // 5. Fermeture du carton si plein ET sans compteurs "wait"
+        // 6. Fermeture du carton si plein ET sans compteurs "wait"
         if ($currentQty >= $qtyLimit && !$hasWaitMeters) {
             $stmtClose = $conn->prepare("UPDATE box SET status = 'closed' WHERE id = :id_box");
             $stmtClose->execute([':id_box' => $id_box]);
@@ -226,11 +292,28 @@ class DbServices {
     static function declareWaitMeter($barcode, $id_meter_type) {
         $conn = Database::getConnection();
         
-        $stmtType = $conn->prepare("SELECT meter_type, qty_box FROM meter_type WHERE id = :id");
+        $stmtType = $conn->prepare("SELECT meter_type, qty_box, model_code FROM meter_type WHERE id = :id");
         $stmtType->execute([':id' => $id_meter_type]);
         $typeInfo = $stmtType->fetch(PDO::FETCH_ASSOC);
+
+        if (!$typeInfo) {
+            echo json_encode(["state" => "f", "message" => "Modèle de compteur introuvable."]);
+            exit;
+        }
+
         $qtyLimit = $typeInfo['qty_box'];
         $typeName = $typeInfo['meter_type'];
+
+        // VALIDATION STRICTE DU CODE-BARRES ATTENDU (longueur, fabricant, année, modèle)
+        $validation = self::validateBarcodeFormat($barcode, $typeName, $typeInfo['model_code']);
+        if (!$validation['valid']) {
+            echo json_encode([
+                "state" => "invalid_barcode",
+                "message" => $validation['message'],
+                "barcode" => $barcode
+            ]);
+            exit;
+        }
 
         // On passe $barcode
         $boxData = self::getOrCreateBox($conn, $id_meter_type, $qtyLimit, $typeName, $barcode);
