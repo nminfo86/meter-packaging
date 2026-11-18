@@ -2,6 +2,30 @@ var dataType = "JSON";
 var qrAlert = $("#qrAlert");
 var packTable = $("#packTable");
 
+// --- VALIDATION CODE-BARRES : valeurs injectées une seule fois par index.php depuis Config.php ---
+// Sécurité production : si la configuration est absente ou incomplète, on arrête tout avec un message
+// clair plutôt que de valider les scans avec des valeurs indéfinies (ce qui laisserait passer ou
+// rejetterait tous les codes-barres de façon silencieuse).
+(function () {
+    var cfg = window.APP_CONFIG;
+    var valid = cfg &&
+        Number.isInteger(cfg.barcodeLength) &&
+        Array.isArray(cfg.validManufacturerCodes) && cfg.validManufacturerCodes.length > 0 &&
+        Number.isInteger(cfg.productionYearMin) &&
+        Number.isInteger(cfg.currentYear);
+    if (!valid) {
+        alert("Configuration manquante ou invalide : rechargez la page (F5) ou contactez le support.");
+        throw new Error("APP_CONFIG missing or invalid");
+    }
+})();
+
+var BARCODE_LENGTH = window.APP_CONFIG.barcodeLength;
+var VALID_MANUFACTURER_CODES = window.APP_CONFIG.validManufacturerCodes;
+var PRODUCTION_YEAR_MIN = window.APP_CONFIG.productionYearMin;
+// Année courante du SERVEUR (2 chiffres) : évite de dépendre de l'horloge du PC d'emballage
+var SERVER_CURRENT_YEAR = window.APP_CONFIG.currentYear;
+
+
 function getCurrentShift() {
     var now = new Date();
     var h = now.getHours();
@@ -85,6 +109,32 @@ $(document).ready(function () {
                 return;
             }
 
+            // --- VALIDATION STRICTE DU CODE-BARRES (longueur, fabricant, année) ---
+            // Bloque ici tout code-barres mal formé, avant même la vérification du modèle.
+            if (barcode.length !== BARCODE_LENGTH) {
+                showAlertFailed("Erreur : Le code-barres doit contenir exactement " + BARCODE_LENGTH + " chiffres (reçu : " + barcode.length + ").");
+                barcodeStr = '';
+                return;
+            }
+
+            let manufacturerCode = barcode.substring(0, 2);
+            if (VALID_MANUFACTURER_CODES.indexOf(manufacturerCode) === -1) {
+                showAlertFailed("Erreur : Fabricant inconnu (code " + manufacturerCode + ").");
+                barcodeStr = '';
+                return;
+            }
+
+            let yearCode = barcode.substring(2, 4);
+            let scannedYear = parseInt(yearCode, 10);
+            // Année du serveur (cohérent avec DbServices::validateBarcodeFormat), pas l'horloge du PC
+            let maxYear = SERVER_CURRENT_YEAR + 1; // tolère la production anticipée de l'année suivante
+            if (isNaN(scannedYear) || scannedYear < PRODUCTION_YEAR_MIN || scannedYear > maxYear) {
+                showAlertFailed("Erreur : Année de production incorrecte (" + yearCode + ").");
+                barcodeStr = '';
+                return;
+            }
+            // --- FIN VALIDATION LONGUEUR / FABRICANT / ANNÉE ---
+
             // --- NOUVELLE VÉRIFICATION DU MODÈLE DE COMPTEUR ---
             let selectedOption = $("#meterTypeSelect").find(':selected');
 
@@ -94,26 +144,16 @@ $(document).ready(function () {
 
             // On calcule le nombre de caractères du code attendu (ex: "1" = 1, "55" = 2)
             let codeLength = expectedModelCode.length;
-            let requiredBarcodeLength = 4 + codeLength;
 
-            // On s'assure que le code est suffisamment long pour éviter un bug
-            if (barcode.length >= requiredBarcodeLength) {
+            // Extrait les caractères en commençant par le 5ème (index 4).
+            // Si expectedModelCode est "1", il extrait 1 caractère (index 4 à 5).
+            // Si expectedModelCode est "55", il extrait 2 caractères (index 4 à 6).
+            let scannedModelCode = barcode.substring(4, 4 + codeLength);
 
-                // Extrait les caractères en commençant par le 5ème (index 4).
-                // Si expectedModelCode est "1", il extrait 1 caractère (index 4 à 5).
-                // Si expectedModelCode est "55", il extrait 2 caractères (index 4 à 6).
-                let scannedModelCode = barcode.substring(4, 4 + codeLength);
-
-                if (scannedModelCode !== expectedModelCode) {
-                    showAlertFailed("Erreur : Ce compteur n'est pas un " + selectedModelName + " ! (Code trouvé : " + scannedModelCode + ", Code attendu : " + expectedModelCode + ")");
-                    barcodeStr = ''; // On vide la variable pour le prochain scan
-                    return; // On bloque l'exécution ici, rien ne sera envoyé au serveur
-                }
-            } else {
-                // Optionnel : Gestion du cas où le code scanné est anormalement court
-                showAlertFailed("Erreur : Le code-barres scanné est trop court.");
-                barcodeStr = '';
-                return;
+            if (scannedModelCode !== expectedModelCode) {
+                showAlertFailed("Erreur : Ce compteur n'est pas un " + selectedModelName + " ! (Code trouvé : " + scannedModelCode + ", Code attendu : " + expectedModelCode + ")");
+                barcodeStr = ''; // On vide la variable pour le prochain scan
+                return; // On bloque l'exécution ici, rien ne sera envoyé au serveur
             }
             // --- FIN DE LA VÉRIFICATION ---
 
@@ -169,7 +209,11 @@ $(document).ready(function () {
             },
             beforeSend: function () { $("#divLoadingcms").removeClass("d-none"); },
             success: function (data) {
-                if (data.state === "already_packed") {
+                // --- NOUVEAU : Rejet serveur d'un code-barres mal formé (garde-fou ultime) ---
+                if (data.state === "invalid_barcode") {
+                    showAlertFailed(data.message);
+                }
+                else if (data.state === "already_packed") {
                     let currentUIRows = packTable.find("tbody tr").length;
                     if (currentUIRows === 0 && data.box_status === "closed") {
                         swal({

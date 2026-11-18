@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.9.0",
+    "date": "2026-11-18",
+    "label": "barcode format validation (manufacturer, year, model)",
+    "changes": [
+      "Reject malformed meter barcodes server-side in packMeter/declareWaitMeter (wrong manufacturer code, implausible production year, length other than 12 digits, or mismatched model code)",
+      "Mirror manufacturer/year/length checks client-side in ajaxIndex.js, in addition to the existing model-code check",
+      "Fixes production bug on SGT34-K meters where a malformed barcode (e.g. 858526200902, invalid year 85) created a phantom box BX-SGT34-K-85-00001 and corrupted box order in palette"
+    ],
+    "db_migrations": []
+  },
+  {
     "version": "1.8.0",
     "date": "2026-07-21",
     "label": "update meter counter for each team by meter type",

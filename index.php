@@ -100,6 +100,18 @@ require_once(__DIR__ . "/php/DbServices.php");
 
     <?php include "includes/footer.php"; ?>
     <?php include "includes/leg.php"; ?>
+    <script>
+        // Barcode validation settings, read once from Config.php at page load.
+        // Single source of truth: also used server-side by DbServices::validateBarcodeFormat().
+        // json_encode keeps integers as numbers (the JS uses strict comparisons).
+        window.APP_CONFIG = <?= json_encode([
+            'barcodeLength' => (int) Config::$barcode_length,
+            'validManufacturerCodes' => array_map('strval', Config::$valid_manufacturer_codes),
+            'productionYearMin' => (int) Config::$production_year_min,
+            // Server year (2 digits): avoids depending on the packaging PC clock, same as the server-side check
+            'currentYear' => (int) date('y'),
+        ]) ?>;
+    </script>
     <script src="js/ajaxIndex.js?v=<?= filemtime('js/ajaxIndex.js') ?>"></script>
 </body>
 

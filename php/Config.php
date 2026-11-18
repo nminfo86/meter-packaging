@@ -36,6 +36,22 @@ class Config {
     public static $user_not_found = "user-not-found";
     public static $user_still_blocked = "user-still-blocked";
 
+//********************************** BARCODE VALIDATION **********************************//
+// Used by DbServices::validateBarcodeFormat() to reject malformed meter barcodes
+// BEFORE a box/palette is created from them (see production incident on SGT34-K meters).
+
+    // Longueur exacte attendue pour un code-barres compteur (12 chiffres)
+    public static $barcode_length = 12;
+
+    // Liste blanche des codes fabricant valides (2 premiers chiffres du code-barres)
+    // 85 = HEXING
+    public static $valid_manufacturer_codes = ['85'];
+
+    // Année de production minimale acceptée (2 chiffres, ex: 24 = 2024).
+    // La borne haute est calculée dynamiquement (année courante + 1) afin de tolérer
+    // la production anticipée des compteurs de l'année suivante, sans retouche annuelle.
+    public static $production_year_min = 24;
+
 //********************************** CONFIG VARIABLES ************************************//
 
     // The path of the log file ,
